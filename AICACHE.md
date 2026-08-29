@@ -1,5 +1,15 @@
 # AI Cache / Agent Handoff Log
 
+## 当前任务（2026-08-30，修正三网延迟与回程选择）
+
+- 状态：implementation_complete，正在验证与发布
+- 目标：让内置地区 × 运营商 × IPv4/IPv6 目录同时支持独立的延迟监控选择和回程线路选择；默认两套列表均为空且不创建/调度探测。
+- 计划：Core 增加延迟选择配置、由本地目录同步带稳定标记的 Ping 任务并提供 RPC；管理端通用设置增加延迟/回程两个选择区；主题文档与发布包同步。
+- 已完成：Core `ed5da25` 新增 `admin:setCarrierPingSelections`、独立延迟选择与 TZA 托管 TCP Ping 任务；Web `0b0237f` 在通用设置中加入独立的“三网延迟监控”和“三网回程线路”列表；主题已同步该管理端构建并升至 v3.3.12。
+- 行为：两套选择默认均为空；地区、电信/联通/移动、IPv4/IPv6 可逐项独立添加。延迟空列表不创建任务并只清理 TZA 托管任务；回程仍需启用开关和非空选择才调度。
+- 验证：Core `go test ./internal/carrierroute ./database/tasks ./web/rpc/jsonrpc ./internal/server` 通过；Web `npm run lint` 为 0 errors / 29 个既有 warnings，`npm run build` 通过；主题 `bun run lint`、`bun run type-check`、`bun run build` 通过；zip 版本、目录、管理端入口、双选择 RPC 与 service worker 排除检查通过。
+- 发布状态：等待提交、推送并创建/核验 v3.3.12 Release；内置管理端来源为 Web commit `0b0237fce66bfa84fbc115984226588ff2acc9a7`。
+
 > 这个文件给 AI 编程代理和二开维护者使用，用来保存任务计划、执行日志、验证结果、风险点和交接信息。它的目标是防止断网、会话丢失、上下文被压缩后无法继续工作。
 
 ## 当前任务（2026-08-29，继续实现）
