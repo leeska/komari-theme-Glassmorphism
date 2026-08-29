@@ -15,13 +15,14 @@
 
 ## TZA Probe Core/Agent 维护（2026-08-29）
 
-- 状态：implemented，待提交推送
+- 状态：published_to_fork
 - Core fork：`https://github.com/leeska/TZA-Probe`，本地 `/Users/Apple/Documents/Codex/2026-08-29/leeska-tza-probe`。
 - Agent fork：`https://github.com/leeska/TZA-Probe-Agent`，本地 `/Users/Apple/Documents/Codex/2026-08-29/leeska-komari-agent`。
+- 已发布提交：Core `6a9e2ea`，Agent `fcbd78f`；主题文档记录提交 `6203098`。
 - Core 新增 `internal/carrierroute`：定时读取 TcpQuality `getNodes` 目标目录，按 IPv4/IPv6 下发受限任务，缓存最近结果并注册 guest 可读的 `public:getCarrierRouteStats`；隐藏节点仍做权限检查。
 - Agent 新增 `agent.carrierRouteProbe` / `agent.carrierRouteResult` v2 事件，使用参数化 `traceroute`，TCP 不可用时降级 UDP；限制目标数、并发、跳数、超时，线路标签提取 TcpQuality 的 10099/CN2/9929/4837/163/CMI 规则。
 - 兼容边界：保留 `github.com/komari-monitor/komari` 与 `github.com/komari-monitor/komari-agent` module 名称、v1/v2 原有方法和二进制兼容；仓库名使用 TZA-Probe，不做破坏性重命名。
-- 验证：新增 Agent parser/classifier 与 Core target/store 单元测试通过；完整 Core 测试目前受官方工作树缺失 `web/public/defaultTheme` embed 目录阻塞，完整 Agent 测试中的既有真实 ICMP/HTTP 用例受沙箱 raw socket/外部网络限制失败。
+- 验证：新增 Agent parser/classifier 与 Core target/store 单元测试通过；Core Web/RPC 包在临时 ignored embed fixture 下编译通过；主题 `bun run lint`、`bun run type-check`、`bun run build` 通过。完整 Core 测试仍有既有 Darwin 权限/路径隔离用例失败，完整 Agent 测试仍有既有真实 ICMP/HTTP 外网用例失败，均与本次改动无关。
 
 ## 使用规则
 
