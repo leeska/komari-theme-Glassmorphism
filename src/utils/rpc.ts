@@ -255,6 +255,36 @@ export interface PingTaskInfo {
   stddev?: number
   loss_approximate?: boolean
   type?: string
+  /** Optional IP family reported by newer Komari agents. */
+  family?: 'ipv4' | 'ipv6'
+  ip_version?: string | number
+}
+
+export type CarrierRouteFamily = 'ipv4' | 'ipv6'
+export type CarrierRouteCarrier = 'telecom' | 'unicom' | 'mobile'
+
+/** Persisted result produced by a Komari-side carrier route probe. */
+export interface CarrierRouteResult {
+  node_uuid?: string
+  family: CarrierRouteFamily
+  carrier: CarrierRouteCarrier | string
+  region?: string
+  target?: string
+  route?: string
+  status: 'ok' | 'failed' | 'timeout' | 'unsupported' | string
+  latency_ms?: number | null
+  loss_percent?: number | null
+  sent?: number
+  received?: number
+  checked_at: string
+  error?: string
+}
+
+export interface CarrierRouteStatsResponse {
+  results?: CarrierRouteResult[]
+  checked_at?: string
+  interval_seconds?: number
+  source_version?: string
 }
 
 export interface AuditLogEntry {
@@ -396,6 +426,8 @@ export interface PingMetricTaskStats {
   p99?: number
   stddev?: number
   p99_p50_ratio?: number
+  family?: 'ipv4' | 'ipv6'
+  ip_version?: string | number
 }
 
 export interface PingMetricStatsResponse {
@@ -997,6 +1029,11 @@ export class KomariRpc {
 
   async getPublicPingMetricStats(params: PingMetricStatsParams, signal?: AbortSignal): Promise<PingMetricStatsResponse> {
     return this.client.call<PingMetricStatsResponse>('public:getPingMetricStats', params, signal)
+  }
+
+  /** Read the latest structured carrier route results produced by the Komari agent/core. */
+  async getPublicCarrierRouteStats(params: { uuid: string, families?: CarrierRouteFamily[], region?: string, max_age_seconds?: number }, signal?: AbortSignal): Promise<CarrierRouteStatsResponse> {
+    return this.client.call<CarrierRouteStatsResponse>('public:getCarrierRouteStats', params, signal)
   }
 
   /**

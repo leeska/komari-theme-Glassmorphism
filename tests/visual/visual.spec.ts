@@ -44,6 +44,68 @@ test('home light desktop', async ({ page }) => {
   await expect(page).toHaveScreenshot('home-light-desktop.png', { fullPage: false })
 })
 
+test('node cards show the three China carrier ping panels', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 })
+  await installKomariFixture(page, { pingTaskOrdering: true, hideEarth: true })
+  await openStablePage(page)
+
+  const card = page.getByRole('button', { name: '查看节点 主控-洛杉矶 详情' })
+  const latencyRows = card.locator('[data-node-ping-bars="latency"] [data-carrier-ping]')
+  await expect(card.locator('[data-node-ping-bars="latency"]')).toBeVisible()
+  await expect(card.locator('[data-node-ping-bars="loss"]')).toBeVisible()
+  await expect(latencyRows).toHaveCount(3)
+  for (const [index, carrier] of ['telecom', 'unicom', 'mobile'].entries())
+    await expect(latencyRows.nth(index)).toHaveAttribute('data-carrier-ping', carrier)
+})
+
+test('node cards filter China carrier ping tasks by configured region', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 })
+  await installKomariFixture(page, { pingTaskOrdering: true, carrierPingRegion: '广东', hideEarth: true })
+  await openStablePage(page)
+
+  const card = page.getByRole('button', { name: '查看节点 主控-洛杉矶 详情' })
+  const latencyRows = card.locator('[data-node-ping-bars="latency"] [data-carrier-ping]')
+  await expect(card.locator('[title="广东"]')).toHaveCount(2)
+  await expect(latencyRows.nth(0)).toContainText('电信')
+  await expect(latencyRows.nth(0)).toContainText('130 ms')
+  await expect(latencyRows.nth(0)).toHaveAttribute('title', /广东电信/)
+  await expect(latencyRows.nth(1)).toContainText('联通')
+  await expect(latencyRows.nth(1)).toContainText('120 ms')
+  await expect(latencyRows.nth(1)).toHaveAttribute('title', /广东联通/)
+  await expect(latencyRows.nth(2)).toContainText('移动')
+  await expect(latencyRows.nth(2)).toContainText('140 ms')
+  await expect(latencyRows.nth(2)).toHaveAttribute('title', /广东移动/)
+  for (const row of await latencyRows.all())
+    await expect(row).not.toHaveAttribute('title', /浙江/)
+})
+
+test('node cards keep IPv4 and IPv6 carrier ping values separate', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 })
+  await installKomariFixture(page, { pingTaskOrdering: true, carrierPingIpv6: true, hideEarth: true })
+  await openStablePage(page)
+
+  const card = page.getByRole('button', { name: '查看节点 主控-洛杉矶 详情' })
+  const latencyRows = card.locator('[data-node-ping-bars="latency"] [data-carrier-ping]')
+  await expect(latencyRows).toHaveCount(3)
+  for (const row of await latencyRows.all()) {
+    await expect(row.locator('[data-node-ping-family="ipv4"]')).toBeVisible()
+    await expect(row.locator('[data-node-ping-family="ipv6"]')).toBeVisible()
+  }
+})
+
+test('node cards show optional structured carrier route results', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 })
+  await installKomariFixture(page, { carrierRouteEnabled: true, hideEarth: true })
+  await openStablePage(page)
+
+  const panel = page.getByRole('button', { name: '查看节点 主控-洛杉矶 详情' }).locator('[data-node-carrier-route]')
+  await expect(panel).toBeVisible()
+  await expect(panel.locator('[data-carrier-route-family="ipv4"] [data-carrier-route]')).toHaveCount(3)
+  await expect(panel.locator('[data-carrier-route-family="ipv6"] [data-carrier-route]')).toHaveCount(3)
+  await expect(panel).toContainText('CN2')
+  await expect(panel).toContainText('CMIN2->CMI')
+})
+
 test('home dark mobile', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await installKomariFixture(page, { dark: true })

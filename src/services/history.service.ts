@@ -72,6 +72,10 @@ export function abortPingRecords(hours: number, maxCount?: number, uuid?: string
   requestManager.abort(getPingRecordsRequestKey(hours, maxCount, uuid))
 }
 
+export function abortPingRecordsWithTasks(hours: number, maxCount?: number, uuid?: string): void {
+  requestManager.abort(`${getPingRecordsRequestKey(hours, maxCount, uuid)}:tasks`)
+}
+
 export function normalizeStatusRecord(record: Partial<StatusRecord>): StatusRecord | null {
   if (!record.client || !record.time)
     return null

@@ -26,7 +26,62 @@ export interface VisualFixtureOptions {
   expiryThresholds?: boolean
   missingCpuMetricHistory?: boolean
   pingTaskOrdering?: boolean
+  carrierPingRegion?: string
+  carrierPingIpv6?: boolean
+  carrierRouteEnabled?: boolean
+  carrierRouteIntervalMinutes?: number
   generalCardKeys?: string[]
+}
+
+interface PingTaskFixture {
+  id: number
+  name: string
+  interval: number
+  loss: number
+  weight: number
+  family?: 'ipv4' | 'ipv6'
+}
+
+function buildPingTasks(options: VisualFixtureOptions): PingTaskFixture[] {
+  let tasks: PingTaskFixture[]
+  if (options.carrierPingRegion) {
+    tasks = [
+      { id: 30, name: '浙江移动', interval: 60, loss: 0, weight: 0, family: 'ipv4' },
+      { id: 10, name: '浙江联通', interval: 60, loss: 0, weight: 1, family: 'ipv4' },
+      { id: 20, name: '浙江电信', interval: 60, loss: 0, weight: 2, family: 'ipv4' },
+      { id: 60, name: '广东移动', interval: 60, loss: 0, weight: 3, family: 'ipv4' },
+      { id: 40, name: '广东联通', interval: 60, loss: 0, weight: 4, family: 'ipv4' },
+      { id: 50, name: '广东电信', interval: 60, loss: 0, weight: 5, family: 'ipv4' },
+    ]
+  }
+  else if (options.pingTaskOrdering) {
+    tasks = [
+      { id: 30, name: '浙江移动', interval: 60, loss: 0, weight: 0, family: 'ipv4' },
+      { id: 10, name: '浙江联通', interval: 60, loss: 0, weight: 1, family: 'ipv4' },
+      { id: 20, name: '浙江电信', interval: 60, loss: 0, weight: 2, family: 'ipv4' },
+    ]
+  }
+  else {
+    tasks = [{ id: 1, name: 'Tokyo', interval: 60, loss: 3.2, weight: 1 }]
+  }
+
+  if (options.carrierPingIpv6) {
+    tasks = [
+      ...tasks,
+      ...tasks
+        .filter(task => task.family === 'ipv4')
+        .map(task => ({ ...task, id: task.id + 100, name: `${task.name} IPv6`, family: 'ipv6' as const, weight: task.weight + 100 })),
+    ]
+  }
+  return tasks
+}
+
+function metricPingTaskOrder(tasks: PingTaskFixture[], enabled: boolean): PingTaskFixture[] {
+  if (!enabled)
+    return tasks
+  if (tasks.length === 3)
+    return [tasks[2]!, tasks[0]!, tasks[1]!]
+  return [...tasks].reverse()
 }
 
 function uuidFor(index: number): string {
@@ -202,7 +257,7 @@ function metricValue(key: string, index: number): number {
 function buildMetricResponse(
   payload: Record<string, unknown>,
   options: VisualFixtureOptions,
-  pingTasks: Array<{ id: number, name: string }>,
+  pingTasks: PingTaskFixture[],
 ) {
   const requested = Array.isArray(payload.metric_keys) ? payload.metric_keys.map(String) : METRIC_KEYS
   const uuid = typeof payload.entity_id === 'string' ? payload.entity_id : uuidFor(0)
@@ -210,9 +265,7 @@ function buildMetricResponse(
     time: new Date(Date.parse(FIXED_NOW) - (47 - index) * 75_000).toISOString(),
     index,
   }))
-  const metricPingTasks = options.pingTaskOrdering
-    ? [pingTasks[2]!, pingTasks[0]!, pingTasks[1]!]
-    : pingTasks
+  const metricPingTasks = metricPingTaskOrder(pingTasks, options.pingTaskOrdering === true)
   const series = requested
     .filter(key => !options.missingCpuMetricHistory || key !== 'cpu.usage')
     .flatMap((key) => {
@@ -221,7 +274,7 @@ function buildMetricResponse(
         metric_key: key,
         entity_id: uuid,
         type: 'gauge',
-        tags: task ? { task_id: String(task.id), task_name: task.name } : {},
+        tags: task ? { task_id: String(task.id), task_name: task.name, ...(task.family ? { ip_version: task.family } : {}) } : {},
         points: points.map(point => ({
           time: point.time,
           value: metricValue(key, point.index) + (task?.id ?? 0),
@@ -238,16 +291,8 @@ function jsonRpcResult(id: unknown, result: unknown) {
 async function handleRpc(route: Route, clientFixtures = clients, options: VisualFixtureOptions = {}): Promise<void> {
   const payload = route.request().postDataJSON() as { id: unknown, method: string, params?: Record<string, unknown> }
   const uuid = typeof payload.params?.uuid === 'string' ? payload.params.uuid : uuidFor(0)
-  const pingTasks = options.pingTaskOrdering
-    ? [
-        { id: 30, name: '浙江移动', interval: 60, loss: 0, weight: 0 },
-        { id: 10, name: '浙江联通', interval: 60, loss: 0, weight: 1 },
-        { id: 20, name: '浙江电信', interval: 60, loss: 0, weight: 2 },
-      ]
-    : [{ id: 1, name: 'Tokyo', interval: 60, loss: 3.2, weight: 1 }]
-  const metricPingTasks = options.pingTaskOrdering
-    ? [pingTasks[2]!, pingTasks[0]!, pingTasks[1]!]
-    : pingTasks
+  const pingTasks = buildPingTasks(options)
+  const metricPingTasks = metricPingTaskOrder(pingTasks, options.pingTaskOrdering === true)
   const pingRecords = pingTasks.flatMap(task => Array.from({ length: 48 }, (_, index) => ({
     task_id: task.id,
     client: uuid,
@@ -312,10 +357,28 @@ async function handleRpc(route: Route, clientFixtures = clients, options: Visual
               max: 120 + task.id,
               avg: 80 + task.id,
               latest: 90 + task.id,
+              family: task.family,
+              ip_version: task.family,
             })),
             count: metricPingTasks.length,
           }
         : { start: FIXED_NOW, end: FIXED_NOW, interval_seconds: 60, stats: [], count: 0 }
+      break
+    case 'public:getCarrierRouteStats':
+      result = options.carrierRouteEnabled
+        ? {
+            checked_at: FIXED_NOW,
+            source_version: 'komari-carrier-route/visual',
+            results: [
+              { node_uuid: uuid, family: 'ipv4', carrier: 'telecom', route: 'CN2', status: 'ok', latency_ms: 42, loss_percent: 0, sent: 3, received: 3, checked_at: FIXED_NOW },
+              { node_uuid: uuid, family: 'ipv4', carrier: 'unicom', route: '4837', status: 'ok', latency_ms: 55, loss_percent: 0, sent: 3, received: 3, checked_at: FIXED_NOW },
+              { node_uuid: uuid, family: 'ipv4', carrier: 'mobile', route: 'CMI', status: 'timeout', latency_ms: null, loss_percent: 100, sent: 3, received: 0, checked_at: FIXED_NOW },
+              { node_uuid: uuid, family: 'ipv6', carrier: 'telecom', route: '163', status: 'ok', latency_ms: 48, loss_percent: 0, sent: 3, received: 3, checked_at: FIXED_NOW },
+              { node_uuid: uuid, family: 'ipv6', carrier: 'unicom', route: '9929', status: 'ok', latency_ms: 61, loss_percent: 0, sent: 3, received: 3, checked_at: FIXED_NOW },
+              { node_uuid: uuid, family: 'ipv6', carrier: 'mobile', route: 'CMIN2->CMI', status: 'ok', latency_ms: 73, loss_percent: 1.2, sent: 3, received: 3, checked_at: FIXED_NOW },
+            ],
+          }
+        : null
       break
     case 'public:getNodesInformation':
       result = Object.values(clientFixtures)
@@ -348,6 +411,9 @@ export async function installKomariFixture(page: Page, options: VisualFixtureOpt
     rpcTransportMode: 'http',
     defaultViewMode: options.viewMode ?? 'card',
     nodeCardSize: options.nodeCardSize ?? 'compact',
+    carrierPingRegion: options.carrierPingRegion ?? '全部',
+    carrierRouteEnabled: options.carrierRouteEnabled ?? false,
+    carrierRouteIntervalMinutes: options.carrierRouteIntervalMinutes ?? 30,
     earthRenderer: options.earthRenderer ?? 'realistic',
     hideEarth: options.hideEarth ?? false,
     stopEarth: true,

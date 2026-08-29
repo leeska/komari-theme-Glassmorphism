@@ -1,11 +1,11 @@
 import type { MaybeRefOrGetter } from 'vue'
-import type { PingMetricTaskStats } from '@/utils/rpc'
+import type { CarrierRouteFamily, PingMetricTaskStats, PingTaskInfo } from '@/utils/rpc'
 import { useThrottleFn } from '@vueuse/core'
 import { computed, onScopeDispose, ref, shallowRef, toValue, watch } from 'vue'
 import { PING_RECORD_MAX_COUNT } from '@/constants/load'
-import { abortPingRecords, loadPingRecords } from '@/services/history.service'
-import { abortPingMetricStats, abortQueryMetrics, loadPingMetricStats, queryMetrics } from '@/services/metrics.service'
-import { isPingMetric, normalizeMetricSeriesList, PING_LATENCY_METRIC, PING_LOSS_METRIC, pingTaskId } from '@/utils/metricSeries'
+import { abortPingRecords, abortPingRecordsWithTasks, loadPingRecordsWithTasks } from '@/services/history.service'
+import { abortPingMetricStats, abortQueryMetrics, loadPingMetricStats, loadPublicPingTasks, queryMetrics } from '@/services/metrics.service'
+import { isPingMetric, normalizeMetricSeriesList, PING_LATENCY_METRIC, PING_LOSS_METRIC, pingTaskFamily, pingTaskId, pingTaskName } from '@/utils/metricSeries'
 
 export interface NodePingHistoryPoint {
   time: string
@@ -29,6 +29,7 @@ interface PingRecord {
 }
 
 interface MetricLossPoint {
+  task_id: number
   time: string
   value: number
   count: number
@@ -43,6 +44,7 @@ function normalizeMaxCount(maxCount: number | null | undefined): number | undefi
 interface SharedPingRecordsState {
   recordsByClient: Map<string, PingRecord[]>
   source: 'metric' | 'legacy'
+  tasks: PingTaskInfo[]
   metricStats?: PingMetricTaskStats[]
   metricLossPoints?: MetricLossPoint[]
 }
@@ -304,6 +306,7 @@ async function loadPingMetricRecords(nodeUuid: string, hours: number, maxCount?:
             continue
 
           metricLossPoints.push({
+            task_id: taskId,
             time: point.time,
             value: point.value,
             count: isFiniteNumber(point.count) && point.count > 0 ? point.count : 1,
@@ -344,6 +347,7 @@ async function loadPingMetricRecords(nodeUuid: string, hours: number, maxCount?:
   return {
     recordsByClient,
     source: 'metric',
+    tasks: [],
     metricStats: stats,
     metricLossPoints,
   }
@@ -363,13 +367,35 @@ async function loadSharedPingRecords(entry: SharedPingRecordsEntry, hours: numbe
         return
 
       if (metricState) {
-        entry.data.value = metricState
+        const tasks = await loadPublicPingTasks().catch(() => [])
+        const metricTasks = metricState.metricStats?.map((stat): PingTaskInfo => ({
+          id: normalizeTaskId(stat.task_id),
+          name: stat.name?.trim() || pingTaskName(stat) || `Task ${stat.task_id}`,
+          interval: stat.interval ?? 0,
+          loss: stat.loss,
+          avg: stat.avg,
+          latest: stat.latest,
+          total: stat.total,
+          valid: stat.valid,
+          p99: stat.p99,
+          p50: stat.p50,
+          p99_p50_ratio: stat.p99_p50_ratio,
+          loss_approximate: stat.loss_approximate,
+          family: stat.family,
+          ip_version: stat.ip_version,
+        })) ?? []
+        const knownTaskIds = new Set(tasks.map(task => task.id))
+        entry.data.value = {
+          ...metricState,
+          tasks: [...tasks, ...metricTasks.filter(task => !knownTaskIds.has(task.id))],
+        }
       }
       else {
-        const records = await loadPingRecords(hours, maxCount, nodeUuid)
+        const result = await loadPingRecordsWithTasks(hours, maxCount, nodeUuid)
         entry.data.value = {
-          recordsByClient: buildRecordsByClient(records),
+          recordsByClient: buildRecordsByClient(result.records),
           source: 'legacy',
+          tasks: result.tasks.filter(task => Number.isFinite(task.id) && typeof task.name === 'string'),
         }
       }
       entry.lastFetchedAt = Date.now()
@@ -406,6 +432,7 @@ function stopSharedPingRecordsRefresh(entry: SharedPingRecordsEntry): void {
 
 function abortSharedPingRecordsRequests(hours: number, maxCount?: number, uuid?: string): void {
   abortPingRecords(hours, maxCount, uuid)
+  abortPingRecordsWithTasks(hours, maxCount, uuid)
   if (!uuid)
     return
 
@@ -772,4 +799,221 @@ export function useNodePingStats(
     avgVolatility: computed(() => stats.value.avgVolatility),
     hasData: computed(() => stats.value.hasData),
   }
+}
+
+export type ChinaCarrierKey = 'telecom' | 'unicom' | 'mobile'
+
+export interface NodeCarrierPingStatsState {
+  family: CarrierRouteFamily
+  key: ChinaCarrierKey
+  labelZh: string
+  labelEn: string
+  taskNames: string[]
+  stats: NodePingStatsState
+  hasLatency: boolean
+}
+
+const CHINA_CARRIER_DEFINITIONS: Array<{
+  key: ChinaCarrierKey
+  labelZh: string
+  labelEn: string
+  matchers: RegExp[]
+}> = [
+  {
+    key: 'telecom',
+    labelZh: '电信',
+    labelEn: 'Telecom',
+    matchers: [/电信/, /china\s*telecom/i, /\btelecom\b/i, /\bctcc\b/i, /\bchinanet\b/i, /\bcn2\b/i],
+  },
+  {
+    key: 'unicom',
+    labelZh: '联通',
+    labelEn: 'Unicom',
+    matchers: [/联通/, /china\s*unicom/i, /\bunicom\b/i, /\bcucc\b/i],
+  },
+  {
+    key: 'mobile',
+    labelZh: '移动',
+    labelEn: 'Mobile',
+    matchers: [/移动/, /china\s*mobile/i, /\bmobile\b/i, /\bcmcc\b/i, /\bcmi\b/i, /\bcmin2\b/i],
+  },
+]
+const CARRIER_REGION_WHITESPACE_REGEX = /\s+/gu
+
+function getCarrierForTaskName(taskName: string): ChinaCarrierKey | null {
+  for (const definition of CHINA_CARRIER_DEFINITIONS) {
+    if (definition.matchers.some(matcher => matcher.test(taskName)))
+      return definition.key
+  }
+  return null
+}
+
+function normalizeCarrierRegionKeyword(value: unknown): string {
+  return typeof value === 'string'
+    ? value.trim().toLocaleLowerCase().replace(CARRIER_REGION_WHITESPACE_REGEX, '')
+    : ''
+}
+
+function taskMatchesCarrierRegion(taskName: string, region: string): boolean {
+  return !region || normalizeCarrierRegionKeyword(taskName).includes(region)
+}
+
+function createEmptyCarrierStats(family: CarrierRouteFamily): NodeCarrierPingStatsState[] {
+  return CHINA_CARRIER_DEFINITIONS.map(definition => ({
+    family,
+    key: definition.key,
+    labelZh: definition.labelZh,
+    labelEn: definition.labelEn,
+    taskNames: [],
+    stats: createEmptyStats(),
+    hasLatency: false,
+  }))
+}
+
+function buildCarrierStats(
+  nodeUuid: string,
+  state: SharedPingRecordsState,
+  definition: (typeof CHINA_CARRIER_DEFINITIONS)[number],
+  family: CarrierRouteFamily,
+  region: string,
+): NodeCarrierPingStatsState {
+  const taskIds = new Set<number>()
+  const taskNames: string[] = []
+  const addTask = (id: string | number, name: string, taskFamily?: CarrierRouteFamily): void => {
+    const taskId = normalizeTaskId(String(id))
+    const taskName = name.trim()
+    const resolvedFamily = taskFamily ?? pingTaskFamily({ name: taskName }) ?? 'ipv4'
+    if (!Number.isFinite(taskId) || !taskName || resolvedFamily !== family || getCarrierForTaskName(taskName) !== definition.key || !taskMatchesCarrierRegion(taskName, region))
+      return
+    taskIds.add(taskId)
+    if (!taskNames.includes(taskName))
+      taskNames.push(taskName)
+  }
+
+  for (const task of state.tasks)
+    addTask(task.id, task.name, pingTaskFamily(task))
+
+  const metricStats = state.metricStats ?? []
+  for (const stat of metricStats) {
+    const name = stat.name?.trim() || pingTaskName(stat)
+    if (name)
+      addTask(stat.task_id, name, pingTaskFamily(stat))
+  }
+
+  const nodeRecords = state.recordsByClient.get(nodeUuid) ?? []
+  const carrierRecords = taskIds.size
+    ? nodeRecords.filter(record => taskIds.has(record.task_id))
+    : []
+  const selectedMetricStats = metricStats.filter(stat => taskIds.has(normalizeTaskId(stat.task_id)))
+  const selectedMetricLossPoints = (state.metricLossPoints ?? []).filter(point => taskIds.has(point.task_id))
+  const stats = buildStats(
+    carrierRecords,
+    selectedMetricStats.length ? selectedMetricStats : undefined,
+    state.metricLossPoints ? selectedMetricLossPoints : undefined,
+  )
+  const hasLatency = selectedMetricStats.some(stat => (
+    stat.valid > 0 && (isFiniteNumber(stat.avg) || isFiniteNumber(stat.latest))
+  )) || carrierRecords.some(record => record.value >= 0)
+
+  return {
+    family,
+    key: definition.key,
+    labelZh: definition.labelZh,
+    labelEn: definition.labelEn,
+    taskNames,
+    stats,
+    hasLatency,
+  }
+}
+
+/** 按 Ping 任务名称及可选地区关键词识别中国电信、中国联通、中国移动并分别计算节点数据。 */
+export function useNodeCarrierPingStats(
+  uuid: MaybeRefOrGetter<string>,
+  options?: {
+    hours?: MaybeRefOrGetter<number>
+    enabled?: MaybeRefOrGetter<boolean>
+    maxCount?: MaybeRefOrGetter<number | undefined>
+    region?: MaybeRefOrGetter<string | undefined>
+  },
+) {
+  const loading = ref(false)
+  const error = ref<string | null>(null)
+  const resolved = computed(() => ({
+    uuid: toValue(uuid),
+    hours: Math.max(1, Math.floor(toValue(options?.hours) ?? 1)),
+    maxCount: normalizeMaxCount(toValue(options?.maxCount) ?? PING_RECORD_MAX_COUNT),
+    enabled: toValue(options?.enabled) ?? true,
+    region: normalizeCarrierRegionKeyword(toValue(options?.region)),
+  }))
+
+  let activeCacheKey: string | null = null
+  let releaseSharedRecords: (() => void) | null = null
+  function syncSharedRecordsSubscription(nextKey: string | null, hours?: number, maxCount?: number, nodeUuid?: string): void {
+    if (activeCacheKey === nextKey)
+      return
+    releaseSharedRecords?.()
+    releaseSharedRecords = null
+    activeCacheKey = nextKey
+    if (nextKey && hours !== undefined && nodeUuid)
+      releaseSharedRecords = retainSharedPingRecordsEntry(hours, maxCount, nodeUuid)
+  }
+
+  onScopeDispose(() => syncSharedRecordsSubscription(null))
+
+  const carriers = computed<NodeCarrierPingStatsState[]>(() => {
+    const { uuid: nodeUuid, hours, maxCount, enabled, region } = resolved.value
+    if (!enabled || !nodeUuid.trim())
+      return [...createEmptyCarrierStats('ipv4'), ...createEmptyCarrierStats('ipv6')]
+    const entry = getSharedPingRecordsEntry(hours, maxCount, nodeUuid)
+    const state = entry.data.value
+    if (!state)
+      return [...createEmptyCarrierStats('ipv4'), ...createEmptyCarrierStats('ipv6')]
+    return (['ipv4', 'ipv6'] as const).flatMap(family => CHINA_CARRIER_DEFINITIONS.map(definition => buildCarrierStats(nodeUuid, state, definition, family, region)))
+  })
+
+  watch(
+    resolved,
+    async (next, _previous, onCleanup) => {
+      let cancelled = false
+      onCleanup(() => {
+        cancelled = true
+      })
+      const { uuid: nodeUuid, hours, maxCount, enabled } = next
+      if (!enabled || !nodeUuid.trim()) {
+        syncSharedRecordsSubscription(null)
+        loading.value = false
+        error.value = null
+        return
+      }
+
+      const cacheKey = getSharedPingRecordsKey(hours, maxCount, nodeUuid)
+      syncSharedRecordsSubscription(cacheKey, hours, maxCount, nodeUuid)
+      const entry = getSharedPingRecordsEntry(hours, maxCount, nodeUuid)
+      const shouldLoadRecords = !entry.data.value
+        || Date.now() - entry.lastFetchedAt >= PING_RECORD_REFRESH_INTERVAL_MS
+      if (!shouldLoadRecords) {
+        loading.value = false
+        error.value = null
+        return
+      }
+
+      const shouldShowLoading = !entry.data.value
+      loading.value = shouldShowLoading
+      error.value = null
+      try {
+        await loadSharedPingRecords(entry, hours, maxCount, nodeUuid)
+      }
+      catch (err) {
+        if (!cancelled && shouldShowLoading)
+          error.value = err instanceof Error ? err.message : '获取三网 Ping 历史失败'
+      }
+      finally {
+        if (!cancelled)
+          loading.value = false
+      }
+    },
+    { immediate: true },
+  )
+
+  return { carriers, loading, error }
 }

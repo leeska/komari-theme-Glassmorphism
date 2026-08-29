@@ -2,6 +2,16 @@
 
 > 这个文件给 AI 编程代理和二开维护者使用，用来保存任务计划、执行日志、验证结果、风险点和交接信息。它的目标是防止断网、会话丢失、上下文被压缩后无法继续工作。
 
+## 当前任务（2026-08-29）
+
+- 状态：ready_to_publish，IPv4/IPv6 三网拆分、可选回程线路读取与 GitHub fork 发布
+- 里程碑：M5 新功能 + M6 文档/回归
+- 已完成：恢复官方主线 `v3.3.7` Git 历史并创建 `codex/ipv4-ipv6-carrier-route`；认证用户 `leeska` 的 fork 已存在。
+- 设计边界：TcpQuality 的回程识别只抽取为服务端结构化结果契约。主题通过 `public:getCarrierRouteStats` 读取，不执行 Bash/rootfs/traceroute/nexttrace/TCP 原始探测/测速。
+- 已完成：Ping 任务按 `family` / `ip_version` 拆分 IPv4、IPv6，并按电信、联通、移动顺序显示；回程 service/composable 支持周期刷新、超时状态、线路标签、延迟/丢包和空状态；fixture 已覆盖 IPv6 与回程 RPC。
+- 验证：`bun run lint`、`bun run type-check`、`bun run build` 通过；Playwright Chromium 19/19 通过；`git diff --check` 通过。构建仅保留既有大 chunk 警告。
+- 下一步：提交并推送 fork；不创建官方 PR。真实回程探测仍需 Komari Agent/Core 或独立服务实现 `public:getCarrierRouteStats`，主题端不会伪造结果。
+
 ## 使用规则
 
 - 开始多文件、架构、安全、发布、迁移类任务前，先新增或更新“当前任务”。
@@ -11,6 +21,35 @@
 - 如果记录过期，直接标注“已完成/已废弃”，不要让后续 AI 误判。
 
 ## 当前任务
+
+- 状态：planned，IPv4/IPv6 三网拆分与 TcpQuality 回程检测
+- 目标：在当前三网顺序/地区筛选基础上，按 IP 协议分别展示电信、联通、移动；设计定时回程检测能力时，先确认 TcpQuality 的 CLI/服务端协议和 Komari Agent 可扩展接口，再决定实现边界。
+- 重要边界：主题浏览器不能直接执行 TcpQuality 的服务器端探测、TCP 原始连接或路由命令；若 Komari 后端没有现成 RPC，必须增加 Agent/核心侧受控采集接口或独立服务，不能伪造前端结果。
+- 当前阻塞：GitHub CLI 仍显示 `leeska` token 无效，网络 DNS/审批不可用，尚未能读取 `ibsgss/TcpQuality` 源码或恢复本地 Git 历史。先完成设计与本地代码前需恢复仓库和 TcpQuality 来源。
+
+- 状态：blocked，等待共享 Git 历史、fork 与 TcpQuality 源码
+- 目标：将当前 v3.3.8 三网顺序/地区筛选改动上传到用户指定的 GitHub fork，后续再创建指向官方仓库的 PR。
+- 阻塞：当前工作区没有 `.git` 或 remote；用户终端已登录 `leeska`，但 Codex 执行环境不能读取该 keyring，且自身 DNS/网络不可用，尚未能恢复官方主线历史或读取 TcpQuality 源码。
+- 需要用户：在已登录终端创建/克隆 `leeska` fork 与 `ibsgss/TcpQuality` 到共享目录。恢复后应先 clone 官方主线、移植当前改动、创建分支并 push，不能直接用无历史目录初始化后推送。
+
+- 状态：done，三网顺序与地区筛选配置
+- 目标：三网卡片固定按电信、联通、移动展示，并允许在托管主题设置中填写地区关键词，只汇总任务名称包含该地区的三网延迟与丢包。
+- 里程碑：M5 配置化功能 + M6 文档/回归；保持公开 Ping 数据路径、Metric/legacy fallback 和共享请求缓存不变。
+- 方案：`komari-theme.json` 新增 `carrierPingRegion` 下拉（全部、常见省市、海外、自定义）和 `carrierPingRegionCustom`；app store 防御性归一化；`useNodeCarrierPingStats` 使用响应式地区关键词过滤任务，节点卡标题显示当前地区。
+- 实现：三网定义和空状态数组统一为电信、联通、移动；Metric 与旧 Ping 历史两条路径共用地区过滤，不改变请求缓存 key 或权限。
+- 回归：夹具同时提供浙江、广东两组三网任务，检查“广东”筛选不会混入浙江任务，并断言电信、联通、移动的固定顺序；Playwright 成功收集 17 条用例，但本机预览端口监听被策略拒绝，新增用例未能实际启动浏览器执行。
+- 验证：`bun run lint`、`bun run type-check`、`bun run build` 通过；静态 manifest/zip 结构检查通过。构建只保留既有 git unknown、大 chunk 警告。
+- 交付：`outputs/komari-theme-Glassmorphism-three-network.zip` 覆盖为 v3.3.8 构建包，SHA-256 在交付后记录。
+
+- 状态：done，基于最新 Glassmorphism 主线加入三网 Ping 展示
+- 目标：在当前主题最新版本上维护中国联通、中国电信、中国移动的独立延迟与丢包显示，并兼容新版 Metric 接口和旧版 Ping 历史接口。
+- 里程碑：M5 新功能 + M6 文档/回归；不改变后端接口契约，不引入权限门槛。
+- 实现：`useNodePingStats` 的共享条目携带 Ping 任务元数据；Metric 路径保留任务 ID/名称和带任务 ID 的丢包采样，旧路径使用 `loadPingRecordsWithTasks`；新增 `useNodeCarrierPingStats` 与 `useNodeCarrierPingDisplay`，按中文名及 `Unicom/CUCC`、`Telecom/CTCC/CN2`、`Mobile/CMCC/CMI/CMIN2` 标识归类。
+- UI：`NodeCard` 延迟/丢包面板改为三行运营商数据，保留点击打开完整 Ping 详情、空数据/加载/离线状态和 `data-node-ping-bars` 兼容标记；`pingEnabled` 继续控制请求。
+- 文档/交付：更新 `komari-theme.json` 描述、README 三网说明；新增三网卡片 Playwright 回归用例；生成 `outputs/komari-theme-Glassmorphism-three-network.zip`。
+- 交付包：`outputs/komari-theme-Glassmorphism-three-network.zip`，SHA-256 `f1147ffaaa86af9b6338af91c132431d1c9214171fbedd0cfcb1c504f6cf7443`；包内保持 `komari-theme.json`、`preview.png`、`dist/` 顶层结构。
+- 验证：`bun run lint`、`bun run type-check`、`bun run build` 均通过；完整 Playwright 视觉套件 16/16 通过（含新增三网标签、Ping 请求范围和任务排序检查）。构建仅有现有大 chunk 提示；由于项目工作区没有可写 `.git`，Vite 版本显示为 `unknown` 并打印 Git 提示，不影响产物。
+- 交接：源码改动集中在 `src/composables/useNodePingStats.ts`、`src/composables/useNodeCarrierPingDisplay.ts`、`src/components/NodeCard.vue`、`src/services/history.service.ts`；未完成项为真实 Komari 后端上的任务命名约定验证，当前识别规则已覆盖旧三网仓库和常见英文别名。
 
 - 状态：in-progress，本地修复与验证完成，正在发布 v3.3.5
 - 目标：修复详情页延迟任务卡片、图例和主页 Ping 指标线与 Komari 后台任务排序不一致的问题。

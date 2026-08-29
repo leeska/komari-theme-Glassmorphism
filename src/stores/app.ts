@@ -960,6 +960,20 @@ const useAppStore = defineStore('app', () => {
     return 'compact'
   })
 
+  const carrierPingRegion = computed<string>(() => {
+    const settings = themeSettings.value
+    const selected = readStringSetting(settings, 'carrierPingRegion')
+    if (!selected || selected === '全部')
+      return ''
+    if (selected === '自定义')
+      return readStringSetting(settings, 'carrierPingRegionCustom')
+    return selected
+  })
+
+  const carrierRouteEnabled = computed<boolean>(() => readBooleanSetting(themeSettings.value, 'carrierRouteEnabled', false))
+
+  const carrierRouteIntervalMinutes = computed<number>(() => readNumberSetting(themeSettings.value, 'carrierRouteIntervalMinutes', 30, 1, 1440))
+
   // 当前实际使用的视图模式
   const nodeViewMode = computed<NodeViewMode>({
     get: () => {
@@ -1307,6 +1321,9 @@ const useAppStore = defineStore('app', () => {
     nodeViewMode,
     defaultViewMode,
     nodeCardSize,
+    carrierPingRegion,
+    carrierRouteEnabled,
+    carrierRouteIntervalMinutes,
     rpcTransportMode,
     byteDecimals,
     alertEnabled,

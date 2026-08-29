@@ -1,7 +1,10 @@
-import type { MetricPoint, MetricSeries, PingMetricTaskStats, PingTaskInfo } from '@/utils/rpc'
+import type { CarrierRouteFamily, MetricPoint, MetricSeries, PingMetricTaskStats, PingTaskInfo } from '@/utils/rpc'
 
 export const PING_LATENCY_METRIC = 'ping.latency_ms'
 export const PING_LOSS_METRIC = 'ping.loss'
+const PING_FAMILY_VALUE_SANITIZE_REGEX = /[^a-z0-9]/g
+const PING_FAMILY_IPV4_NAME_REGEX = /(?:^|[^a-z0-9])(?:ipv?4|v4)(?:$|[^a-z0-9])/i
+const PING_FAMILY_IPV6_NAME_REGEX = /(?:^|[^a-z0-9])(?:ipv?6|v6)(?:$|[^a-z0-9])/i
 
 export interface NormalizedMetricSeries extends Omit<MetricSeries, 'points'> {
   tags: Record<string, unknown>
@@ -112,6 +115,33 @@ export function pingTaskName(value: { tag?: Record<string, unknown>, tags?: Reco
   const tags = metricTags(value as { tag?: Record<string, unknown>, tags?: Record<string, unknown>, labels?: Record<string, unknown> } | null | undefined)
   const directName = (value as { name?: string } | null | undefined)?.name
   return directName?.trim() || stringifyTagValue(tags.task_name || tags.name || tags.task) || pingTaskId(value)
+}
+
+/** Normalize family labels emitted by agents and older metric gateways. */
+export function pingTaskFamily(value: { tag?: Record<string, unknown>, tags?: Record<string, unknown>, labels?: Record<string, unknown>, family?: string, ip_version?: string | number, name?: string } | PingMetricTaskStats | PingTaskInfo | null | undefined): CarrierRouteFamily | undefined {
+  const tags = metricTags(value as { tag?: Record<string, unknown>, tags?: Record<string, unknown>, labels?: Record<string, unknown> } | null | undefined)
+  const candidates = [
+    (value as { family?: unknown } | null | undefined)?.family,
+    (value as { ip_version?: unknown } | null | undefined)?.ip_version,
+    tags.family,
+    tags.ip_version,
+    tags.ipVersion,
+    tags.protocol,
+  ]
+  for (const candidate of candidates) {
+    const normalized = String(candidate ?? '').trim().toLowerCase().replace(PING_FAMILY_VALUE_SANITIZE_REGEX, '')
+    if (normalized === '4' || normalized === 'v4' || normalized === 'ipv4' || normalized === 'tcp4')
+      return 'ipv4'
+    if (normalized === '6' || normalized === 'v6' || normalized === 'ipv6' || normalized === 'tcp6')
+      return 'ipv6'
+  }
+
+  const name = pingTaskName(value)
+  if (PING_FAMILY_IPV4_NAME_REGEX.test(name))
+    return 'ipv4'
+  if (PING_FAMILY_IPV6_NAME_REGEX.test(name))
+    return 'ipv6'
+  return undefined
 }
 
 export function createPingTaskOrderMap(tasks: readonly Pick<PingTaskInfo, 'id'>[]): Map<string, number> {

@@ -37,7 +37,7 @@
 
 | 项目     | 说明                                                      |
 | :------- | :-------------------------------------------------------- |
-| 当前版本 | **v3.3.7**                                                |
+| 当前版本 | **v3.3.9**                                                |
 | 主题定位 | Komari Monitor 可导入 zip 主题，不是普通 Web App 部署包   |
 | 视觉风格 | 毛玻璃卡片、动态背景、浅色 / 深色 / 北京时间自动日夜模式  |
 | 数据能力 | Metric Store 优先，旧接口自动 fallback，兼容 Komari 1.2.x |
@@ -45,6 +45,61 @@
 | 发布产物 | `komari-theme-Glassmorphism-build-<short-sha>.zip`        |
 
 > 好看只是外壳。v3 真正的重点，是把 Metric、Ping、流量、费用、健康分析和运维工具整合成日常真的会打开来看的监控面板。
+
+## 📡 三网 Ping 显示
+
+节点卡片会按 Ping 任务名称自动识别中国电信、中国联通和中国移动，固定按“电信、联通、移动”展示最近采样的延迟、丢包率和平均值。任务名称支持中文名称以及 `Telecom/CTCC/CN2`、`Unicom/CUCC`、`Mobile/CMCC/CMI` 等常见标识；未匹配到某一运营商时保留空状态，不影响其他节点指标。
+
+主题设置中的“三网 Ping 地区”可以限定要显示的测试地区。选择 `广东` 后，仅汇总任务名称中包含“广东”的电信、联通、移动任务，卡片右上角也会显示“广东”；选择 `全部` 则汇总所有地区。选择 `自定义` 后，在下方填写城市或任务名中的区域标签，例如 `广州`、`杭州`。地区使用任务名称关键词匹配，因此不需要修改后端接口。
+
+数据读取优先使用 Komari 的 Metric 接口，旧版实例会自动回退到 Ping 历史接口。点击延迟或丢包面板仍可打开节点的完整 Ping 监测详情。
+
+---
+
+## 📡 v3.3.8 三网地区筛选
+
+- 三网 Ping 卡片固定按电信、联通、移动排序
+- 主题设置新增常见地区下拉选择、全部和自定义关键词
+- 地区筛选同时作用于 Metric 和旧版 Ping 历史 fallback
+
+## 🧭 v3.3.9 IPv4/IPv6 与三网回程
+
+- 节点卡片中的电信、联通、移动 Ping 数据现在分别显示 IPv4 和 IPv6；新版本 Agent 可以在 Ping 任务或 Metric 中上报 `family` / `ip_version`，旧任务默认按 IPv4 兼容。
+- 主题设置新增“启用三网回程线路”和“回程线路刷新周期（分钟）”。开启后，主题按周期读取 `public:getCarrierRouteStats`，展示 IPv4/IPv6、三网运营商、线路标签、延迟、丢包、状态和最后检测时间。
+- 回程探测必须由 Komari Agent/Core 或独立受控服务执行。主题不会执行 TcpQuality 的 Bash、rootfs、`traceroute`、`nexttrace`、原始 TCP 探测或测速；TcpQuality 的回程识别思路被重构为有限目标集、超时/并发控制和结构化 JSON 结果。
+
+### 回程 RPC 约定
+
+后端方法：`public:getCarrierRouteStats`
+
+请求参数：`{ uuid, families: ["ipv4", "ipv6"], region?, max_age_seconds? }`
+
+响应示例：
+
+```json
+{
+  "checked_at": "2026-08-29T07:00:00Z",
+  "source_version": "komari-carrier-route/1",
+  "results": [
+    {
+      "node_uuid": "node-uuid",
+      "family": "ipv4",
+      "carrier": "telecom",
+      "region": "广东",
+      "target": "target.example",
+      "route": "CN2",
+      "status": "ok",
+      "latency_ms": 42.5,
+      "loss_percent": 0,
+      "sent": 3,
+      "received": 3,
+      "checked_at": "2026-08-29T07:00:00Z"
+    }
+  ]
+}
+```
+
+检测服务应为每个节点维护定时任务，仅允许配置好的三网目标，单任务设置连接/路由超时并限制并发；线路标签可沿用 TcpQuality 的 ASN/运营商识别规则，但应在服务端完成并持久化最近一次结果。后端未实现此 RPC 时，主题保留空状态，不会把普通 Ping 结果当作回程线路。
 
 ---
 
