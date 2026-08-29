@@ -11,7 +11,17 @@
 - 已完成：Ping 任务按 `family` / `ip_version` 拆分 IPv4、IPv6，并按电信、联通、移动顺序显示；回程 service/composable 支持周期刷新、超时状态、线路标签、延迟/丢包和空状态；fixture 已覆盖 IPv6 与回程 RPC。
 - 验证：`bun run lint`、`bun run type-check`、`bun run build` 通过；Playwright Chromium 19/19 通过；`git diff --check` 通过。构建仅保留既有大 chunk 警告。
 - 发布：提交 `e2add5f9c01c20a2161da2bb85a496c09c77a1b8` 已推送到 `fork/codex/ipv4-ipv6-carrier-route`；不创建官方 PR。构建包 `komari-theme-Glassmorphism-build-e2add5f.zip`，SHA-256 `0d2f8afb0f4340dd5cc65a559031c2d615f216f11456ba7e6a7e4a925dccc821`。
-- 后续：真实回程探测仍需 Komari Agent/Core 或独立服务实现 `public:getCarrierRouteStats`，主题端不会伪造结果；用户确认后再以该分支发起官方 PR。
+- 后续：真实回程探测已在配套 Core/Agent fork 实现，主题端仍只读取 `public:getCarrierRouteStats`，不会执行服务器探测。
+
+## TZA Probe Core/Agent 维护（2026-08-29）
+
+- 状态：implemented，待提交推送
+- Core fork：`https://github.com/leeska/TZA-Probe`，本地 `/Users/Apple/Documents/Codex/2026-08-29/leeska-tza-probe`。
+- Agent fork：`https://github.com/leeska/TZA-Probe-Agent`，本地 `/Users/Apple/Documents/Codex/2026-08-29/leeska-komari-agent`。
+- Core 新增 `internal/carrierroute`：定时读取 TcpQuality `getNodes` 目标目录，按 IPv4/IPv6 下发受限任务，缓存最近结果并注册 guest 可读的 `public:getCarrierRouteStats`；隐藏节点仍做权限检查。
+- Agent 新增 `agent.carrierRouteProbe` / `agent.carrierRouteResult` v2 事件，使用参数化 `traceroute`，TCP 不可用时降级 UDP；限制目标数、并发、跳数、超时，线路标签提取 TcpQuality 的 10099/CN2/9929/4837/163/CMI 规则。
+- 兼容边界：保留 `github.com/komari-monitor/komari` 与 `github.com/komari-monitor/komari-agent` module 名称、v1/v2 原有方法和二进制兼容；仓库名使用 TZA-Probe，不做破坏性重命名。
+- 验证：新增 Agent parser/classifier 与 Core target/store 单元测试通过；完整 Core 测试目前受官方工作树缺失 `web/public/defaultTheme` embed 目录阻塞，完整 Agent 测试中的既有真实 ICMP/HTTP 用例受沙箱 raw socket/外部网络限制失败。
 
 ## 使用规则
 
