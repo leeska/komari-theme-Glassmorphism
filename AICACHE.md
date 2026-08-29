@@ -4,13 +4,14 @@
 
 ## 当前任务（2026-08-29）
 
-- 状态：ready_to_publish，IPv4/IPv6 三网拆分、可选回程线路读取与 GitHub fork 发布
+- 状态：published_to_fork，IPv4/IPv6 三网拆分、可选回程线路读取与 GitHub fork 发布
 - 里程碑：M5 新功能 + M6 文档/回归
 - 已完成：恢复官方主线 `v3.3.7` Git 历史并创建 `codex/ipv4-ipv6-carrier-route`；认证用户 `leeska` 的 fork 已存在。
 - 设计边界：TcpQuality 的回程识别只抽取为服务端结构化结果契约。主题通过 `public:getCarrierRouteStats` 读取，不执行 Bash/rootfs/traceroute/nexttrace/TCP 原始探测/测速。
 - 已完成：Ping 任务按 `family` / `ip_version` 拆分 IPv4、IPv6，并按电信、联通、移动顺序显示；回程 service/composable 支持周期刷新、超时状态、线路标签、延迟/丢包和空状态；fixture 已覆盖 IPv6 与回程 RPC。
 - 验证：`bun run lint`、`bun run type-check`、`bun run build` 通过；Playwright Chromium 19/19 通过；`git diff --check` 通过。构建仅保留既有大 chunk 警告。
-- 下一步：提交并推送 fork；不创建官方 PR。真实回程探测仍需 Komari Agent/Core 或独立服务实现 `public:getCarrierRouteStats`，主题端不会伪造结果。
+- 发布：提交 `e2add5f9c01c20a2161da2bb85a496c09c77a1b8` 已推送到 `fork/codex/ipv4-ipv6-carrier-route`；不创建官方 PR。构建包 `komari-theme-Glassmorphism-build-e2add5f.zip`，SHA-256 `0d2f8afb0f4340dd5cc65a559031c2d615f216f11456ba7e6a7e4a925dccc821`。
+- 后续：真实回程探测仍需 Komari Agent/Core 或独立服务实现 `public:getCarrierRouteStats`，主题端不会伪造结果；用户确认后再以该分支发起官方 PR。
 
 ## 使用规则
 
