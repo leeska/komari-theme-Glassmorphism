@@ -2,6 +2,15 @@
 
 > 这个文件给 AI 编程代理和二开维护者使用，用来保存任务计划、执行日志、验证结果、风险点和交接信息。它的目标是防止断网、会话丢失、上下文被压缩后无法继续工作。
 
+## 当前任务（2026-08-29，继续实现）
+
+- 状态：implemented_locally，待分别提交并推送 Core、Agent、Web 和主题
+- 需求落地：Core 内置 31 个地区 × 电信/联通/移动 × IPv4/IPv6 目录；默认关闭且空选择不调度；管理员可逐项添加或删除监控组合；周期默认 60 分钟、最短 15 分钟；Agent 负责受限 traceroute；主题区分“未监控”和“暂无结果”。
+- 新增管理端：独立 `komari-web` checkout 已加入通用设置里的三网回程面板，调用 `admin:getCarrierRouteOptions` / `admin:setCarrierRouteSelections`，支持地区、运营商、IP 协议选择、去重、删除和清空。
+- 默认 URL 兼容：Core 将旧版本写入的 `https://tcpquality.ibsgss.uk/getNodes` 视为本地目录兼容值，只有自定义 HTTP(S) 地址才会远程读取。
+- 验证：Core 定向包测试通过；Agent `go test ./server -run 'CarrierRoute|carrierRoute'` 通过；主题 `bun run lint`、`bun run type-check`、`bun run build` 通过；Web `npm run lint` 0 errors（29 个既有 warnings）、`npm run build` 通过。Core `go test ./...` 仅剩既有 Darwin jsruntime/路径权限和临时 defaultTheme fixture 失败。
+- 待办：提交并推送四个仓库；若要给 Core 交付内置后台，需要用 Web 构建产物替换 `web/public/defaultTheme` 的临时 fixture，再跑嵌入静态资源测试。
+
 ## 当前任务（2026-08-29）
 
 - 状态：published_to_fork，IPv4/IPv6 三网拆分、可选回程线路读取与 GitHub fork 发布

@@ -15,6 +15,7 @@ export interface CarrierRouteDisplay {
   latency: string
   loss: string
   status: string
+  monitored: boolean
   checkedAt: string
   tooltip: string
 }
@@ -47,18 +48,26 @@ export function useNodeCarrierRouteDisplay(uuid: MaybeRefOrGetter<string>) {
   const displays = computed<CarrierRouteDisplay[]>(() => {
     const lang = appStore.lang
     const results = routeStats.results.value
+    const configured = new Set(routeStats.selections.value.map(selection => `${selection.family}:${selection.carrier}:${selection.region}`))
     return FAMILIES.flatMap(family => CARRIERS.map((definition) => {
       const result = results.find(item => item.family === family && item.carrier === definition.key)
+      const monitored = routeStats.selectionsKnown.value
+        ? routeStats.enabled.value === true && [...configured].some(key => key.startsWith(`${family}:${definition.key}:`))
+        : Boolean(result)
       const familyLabel = family === 'ipv4' ? 'IPv4' : 'IPv6'
       const carrierText = lang === 'zh-CN' ? definition.zh : definition.en
-      const latency = typeof result?.latency_ms === 'number' ? `${Math.round(result.latency_ms)} ms` : '-'
-      const loss = typeof result?.loss_percent === 'number' ? `${result.loss_percent.toFixed(1)}%` : '-'
-      const route = result?.route?.trim() || '-'
-      const status = statusLabel(result?.status ?? 'failed', lang)
+      const latency = monitored && typeof result?.latency_ms === 'number' ? `${Math.round(result.latency_ms)} ms` : '-'
+      const loss = monitored && typeof result?.loss_percent === 'number' ? `${result.loss_percent.toFixed(1)}%` : '-'
+      const route = monitored ? result?.route?.trim() || '-' : '-'
+      const status = monitored
+        ? statusLabel(result?.status ?? 'failed', lang)
+        : lang === 'zh-CN' ? '未监控' : 'Not monitored'
       const checkedAt = result?.checked_at ? formatDateTime(result.checked_at, 'MM-dd HH:mm') : '-'
       const tooltip = result
         ? `${familyLabel} ${carrierText}\n${route}\n${status}\n${checkedAt}`
-        : lang === 'zh-CN' ? `${familyLabel} ${carrierText}暂无回程结果` : `No ${familyLabel} ${carrierText} route result`
+        : monitored
+          ? lang === 'zh-CN' ? `${familyLabel} ${carrierText}暂无回程结果` : `No ${familyLabel} ${carrierText} route result`
+          : lang === 'zh-CN' ? `${familyLabel} ${carrierText}未加入监控` : `${familyLabel} ${carrierText} is not monitored`
       return {
         key: `${family}-${definition.key}`,
         family,
@@ -69,6 +78,7 @@ export function useNodeCarrierRouteDisplay(uuid: MaybeRefOrGetter<string>) {
         latency,
         loss,
         status,
+        monitored,
         checkedAt,
         tooltip,
       }

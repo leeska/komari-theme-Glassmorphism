@@ -1,4 +1,4 @@
-import type { CarrierRouteCarrier, CarrierRouteFamily, CarrierRouteResult } from '@/utils/rpc'
+import type { CarrierRouteCarrier, CarrierRouteFamily, CarrierRouteResult, CarrierRouteSelection } from '@/utils/rpc'
 import { requestManager } from '@/services/request.service'
 import { getSharedRpc, RpcError } from '@/utils/rpc'
 
@@ -12,6 +12,16 @@ export interface CarrierRouteQuery {
   families?: CarrierRouteFamily[]
   region?: string
   maxAgeSeconds?: number
+}
+
+export interface CarrierRouteStatsSnapshot {
+  results: CarrierRouteResult[]
+  checkedAt: string
+  intervalSeconds?: number
+  enabled?: boolean
+  selections: CarrierRouteSelection[]
+  selectionsKnown: boolean
+  sourceVersion?: string
 }
 
 function normalizeFamily(value: unknown): CarrierRouteFamily | null {
@@ -86,10 +96,10 @@ function shouldRetry(error: unknown): boolean {
   return !(error instanceof RpcError && [401, 403, -32601].includes(error.code))
 }
 
-export async function loadCarrierRouteStats(query: CarrierRouteQuery): Promise<CarrierRouteResult[]> {
+export async function loadCarrierRouteStats(query: CarrierRouteQuery): Promise<CarrierRouteStatsSnapshot> {
   const uuid = query.uuid.trim()
   if (!uuid)
-    return []
+    return { results: [], checkedAt: '', selections: [], selectionsKnown: false }
   const families = [...new Set(query.families ?? [])]
   const region = query.region?.trim() || undefined
   const maxAgeSeconds = typeof query.maxAgeSeconds === 'number' && Number.isFinite(query.maxAgeSeconds)
@@ -111,9 +121,37 @@ export async function loadCarrierRouteStats(query: CarrierRouteQuery): Promise<C
         : Array.isArray(nestedPayload?.results)
           ? nestedPayload.results
           : Array.isArray(payload.data) ? payload.data : Array.isArray(response) ? response : []
-      return rawResults
+      const results = rawResults
         .map(item => normalizeResult(item, checkedAt, uuid))
         .filter((item): item is CarrierRouteResult => Boolean(item))
+      const rawSelections = Array.isArray(payload.selections)
+        ? payload.selections
+        : Array.isArray(nestedPayload?.selections) ? nestedPayload.selections : undefined
+      const selections = (rawSelections ?? [])
+        .filter(item => item && typeof item === 'object' && !Array.isArray(item))
+        .map((item) => {
+          const selection = item as Record<string, unknown>
+          const family = normalizeFamily(selection.family ?? selection.ip_version ?? selection.ipVersion)
+          const carrier = normalizeCarrier(selection.carrier ?? selection.isp ?? selection.operator)
+          const region = typeof selection.region === 'string' ? selection.region.trim() : ''
+          return family && carrier && region
+            ? { region, carrier, family }
+            : null
+        })
+        .filter((item): item is CarrierRouteSelection => Boolean(item))
+      return {
+        results,
+        checkedAt,
+        intervalSeconds: finiteOrNull(payload.interval_seconds ?? nestedPayload?.interval_seconds) ?? undefined,
+        enabled: typeof payload.enabled === 'boolean'
+          ? payload.enabled
+          : typeof nestedPayload?.enabled === 'boolean' ? nestedPayload.enabled : undefined,
+        selections,
+        selectionsKnown: Array.isArray(payload.selections) || Array.isArray(nestedPayload?.selections),
+        sourceVersion: typeof payload.source_version === 'string'
+          ? payload.source_version
+          : typeof nestedPayload?.source_version === 'string' ? nestedPayload.source_version : undefined,
+      }
     },
     { shouldRetry },
   )

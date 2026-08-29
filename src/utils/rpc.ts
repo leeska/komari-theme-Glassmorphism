@@ -263,6 +263,12 @@ export interface PingTaskInfo {
 export type CarrierRouteFamily = 'ipv4' | 'ipv6'
 export type CarrierRouteCarrier = 'telecom' | 'unicom' | 'mobile'
 
+export interface CarrierRouteSelection {
+  region: string
+  carrier: CarrierRouteCarrier | string
+  family: CarrierRouteFamily
+}
+
 /** Persisted result produced by a Komari-side carrier route probe. */
 export interface CarrierRouteResult {
   node_uuid?: string
@@ -284,6 +290,8 @@ export interface CarrierRouteStatsResponse {
   results?: CarrierRouteResult[]
   checked_at?: string
   interval_seconds?: number
+  enabled?: boolean
+  selections?: CarrierRouteSelection[]
   source_version?: string
 }
 

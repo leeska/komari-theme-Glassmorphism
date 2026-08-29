@@ -65,7 +65,7 @@
 ## 🧭 v3.3.9 IPv4/IPv6 与三网回程
 
 - 节点卡片中的电信、联通、移动 Ping 数据现在分别显示 IPv4 和 IPv6；新版本 Agent 可以在 Ping 任务或 Metric 中上报 `family` / `ip_version`，旧任务默认按 IPv4 兼容。
-- 主题设置新增“启用三网回程线路”和“回程线路刷新周期（分钟）”。开启后，主题按周期读取 `public:getCarrierRouteStats`，展示 IPv4/IPv6、三网运营商、线路标签、延迟、丢包、状态和最后检测时间。
+- 主题设置新增“启用三网回程线路”和“回程线路刷新周期（分钟）”。默认周期为 60 分钟，主题端限制为 15-1440 分钟。开启后，主题按周期读取 `public:getCarrierRouteStats`，展示 IPv4/IPv6、三网运营商、线路标签、延迟、丢包、状态和最后检测时间；后端返回当前选择时，未选组合会明确显示“未监控”。
 - 回程探测必须由 Komari Agent/Core 或独立受控服务执行。主题不会执行 TcpQuality 的 Bash、rootfs、`traceroute`、`nexttrace`、原始 TCP 探测或测速；TcpQuality 的回程识别思路被重构为有限目标集、超时/并发控制和结构化 JSON 结果。
 
 ### 回程 RPC 约定
@@ -79,7 +79,7 @@
 ```json
 {
   "checked_at": "2026-08-29T07:00:00Z",
-  "source_version": "komari-carrier-route/1",
+  "source_version": "komari-carrier-route/2",
   "results": [
     {
       "node_uuid": "node-uuid",

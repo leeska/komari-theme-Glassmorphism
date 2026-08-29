@@ -49,7 +49,7 @@
       { "key": "carrierPingRegion", "name": "三网 Ping 地区", "type": "select", "default": "全部", "options": "全部,北京,上海,广东,江苏,浙江,福建,山东,河南,湖北,湖南,四川,重庆,陕西,辽宁,河北,香港,台湾,海外,自定义", "help": "选择任务名称中的地区关键词；选择自定义时填写下方关键词；全部显示所有地区的三网数据。" },
       { "key": "carrierPingRegionCustom", "name": "自定义三网 Ping 地区关键词", "type": "string", "default": "", "help": "仅在上方选择“自定义”时使用，例如广州、杭州或你在 Ping 任务名称中使用的区域标签。" },
       { "key": "carrierRouteEnabled", "name": "启用三网回程线路", "type": "switch", "default": false, "help": "读取 Komari Agent/Core 生成的结构化回程结果；主题不会在浏览器执行 traceroute 或 TcpQuality。" },
-      { "key": "carrierRouteIntervalMinutes", "name": "回程线路刷新周期（分钟）", "type": "number", "default": 30, "help": "主题读取回程结果的周期，范围 1-1440 分钟；Agent 端应使用独立定时任务执行探测。" },
+      { "key": "carrierRouteIntervalMinutes", "name": "回程线路刷新周期（分钟）", "type": "number", "default": 60, "help": "主题读取回程结果的周期，范围 15-1440 分钟；Agent 端应使用独立定时任务执行探测。" },
       { "key": "nodeListMetadataEnabled", "name": "列表信息栏", "type": "switch", "default": true, "help": "在列表视图显示节点信息栏；关闭后隐藏厂商、地区、ASN 和标签信息列。" },
       { "key": "nodeListMetadataFields", "name": "列表信息字段 keys", "type": "richtext", "default": "provider\nregion\nasn", "help": "逗号、空格或换行分隔。 provider=厂商； region=地区； city=城市； asn=ASN； tags=自定义标签； group=分组。" },
       { "key": "nodeListCustomTagsVisible", "name": "列表显示自定义标签", "type": "switch", "default": true, "help": "列表信息字段包含 tags 时，是否显示节点自定义标签；无标签节点不会显示空标签。" },

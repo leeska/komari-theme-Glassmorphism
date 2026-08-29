@@ -972,7 +972,7 @@ const useAppStore = defineStore('app', () => {
 
   const carrierRouteEnabled = computed<boolean>(() => readBooleanSetting(themeSettings.value, 'carrierRouteEnabled', false))
 
-  const carrierRouteIntervalMinutes = computed<number>(() => readNumberSetting(themeSettings.value, 'carrierRouteIntervalMinutes', 30, 1, 1440))
+  const carrierRouteIntervalMinutes = computed<number>(() => readNumberSetting(themeSettings.value, 'carrierRouteIntervalMinutes', 60, 15, 1440))
 
   // 当前实际使用的视图模式
   const nodeViewMode = computed<NodeViewMode>({
