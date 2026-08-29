@@ -4,13 +4,13 @@
 
 ## 当前任务（2026-08-29，继续实现）
 
-- 状态：published_to_forks，主题 v3.3.10 Release 已发布
+- 状态：published_to_forks，主题 v3.3.11 Release 已发布
 - 需求落地：Core 内置 31 个地区 × 电信/联通/移动 × IPv4/IPv6 目录；默认关闭且空选择不调度；管理员可逐项添加或删除监控组合；周期默认 60 分钟、最短 15 分钟；Agent 负责受限 traceroute；主题区分“未监控”和“暂无结果”。
 - 新增管理端：独立 `komari-web` checkout 已加入通用设置里的三网回程面板，调用 `admin:getCarrierRouteOptions` / `admin:setCarrierRouteSelections`，支持地区、运营商、IP 协议选择、去重、删除和清空。
 - 默认 URL 兼容：Core 将旧版本写入的 `https://tcpquality.ibsgss.uk/getNodes` 视为本地目录兼容值，只有自定义 HTTP(S) 地址才会远程读取。
 - 验证：Core 定向包测试通过；Agent `go test ./server -run 'CarrierRoute|carrierRoute'` 通过；主题 `bun run lint`、`bun run type-check`、`bun run build` 通过；Web `npm run lint` 0 errors（29 个既有 warnings）、`npm run build` 通过。Core `go test ./...` 仅剩既有 Darwin jsruntime/路径权限和临时 defaultTheme fixture 失败。
 - 已发布：Core `4abdd68` -> `leeska/TZA-Probe:feature/carrier-route`；Agent `e56d1ae` -> `leeska/TZA-Probe-Agent:feature/carrier-route`；Web `8fa594b` -> `leeska/komari-web:radix`；主题 `3bfde99` -> `leeska/komari-theme-Glassmorphism:codex/ipv4-ipv6-carrier-route`。
-- Release：`v3.3.10`，资产 `komari-theme-Glassmorphism-build-3bfde99.zip`，SHA-256 `16924eb460f64d200a71a5db23122f892595208f91aca7040fbb0930869d281d`。
+- Release：`v3.3.11`，资产 `komari-theme-Glassmorphism-build-f27452f.zip`，SHA-256 `37c8fe59ac509fce69be94fac1605f50172c962533ec633b77e1e71cc7516d61`；包内已同步新管理端 `dist/admin-app`，来源 Web commit `8fa594b`。
 - 后续：若要给 Core 交付内置后台，需要用 Web 构建产物替换 `web/public/defaultTheme` 的临时 fixture，再跑嵌入静态资源测试；官方 PR 仍未创建。
 
 ## 当前任务（2026-08-29）
