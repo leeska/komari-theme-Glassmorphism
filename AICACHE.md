@@ -1,5 +1,19 @@
 # AI Cache / Agent Handoff Log
 
+## 当前任务（2026-08-30，TZA Probe 独立产品重构）
+
+- 状态：implemented_and_pushed，等待主题 v3.3.14 GitHub Release 线上资产复验
+- 里程碑：M4 UI/UX + M5 产品拆分 + M6 发布/DX
+- 用户方向：不再沿用 Komari 的产品信息架构与后台布局；TZA Probe Core 自带唯一管理端，Glassmorphism 只保留公开展示职责。
+- 工作范围：重新组织 TZA Probe 后台壳层与探针工作区；将 Core 构建、安装、Docker、Release 资产和文案切换为 TZA Probe；将 Agent 安装与自更新切到 `leeska/TZA-Probe-Agent`；移除主题内嵌后台及桥接；完成真实 Core 路由、持久化、构建和 GitHub 发布验证。
+- 兼容边界：旧 Go module path、旧数据库文件名和必要的旧环境变量仅作为无界面的升级兼容层保留，不作为产品身份或远程依赖。
+- 已确认：Core 内置后台的 `/admin/probes` 可直接访问并刷新；31 地区 × 三网 × IPv4/IPv6 共 186 个本地目标；延迟与回程选择默认均为空，可独立保存和恢复。
+- 后台重设计：管理导航按 Monitoring / Operations / Alerting / Platform 重组，桌面与移动端无页面级横向溢出；探针中心使用延迟/回程分段模式复用同一目标矩阵。
+- 产品化：Core 默认数据库、CLI、安装器、Docker、Release 资产与运行时身份切换为 TZA Probe；Agent 安装、自更新与资产名切换为 TZA Probe Agent；旧 module path、数据库和环境变量仅保留升级兼容。
+- 主题职责：删除主题内全部已跟踪 `public/admin-app` 构建及同步脚本，构建阶段显式排除 `dist/admin-app`；Glassmorphism 只负责公开展示，管理端唯一归属 Core。
+- 已推送：Web `27d8a5f` -> `leeska/komari-web:radix`；Core `24774e5` -> `leeska/TZA-Probe:feature/carrier-route`；Agent `5839a18` -> `leeska/TZA-Probe-Agent:feature/carrier-route`。
+- 验证：Web lint（0 errors / 29 个既有 warnings）、i18n dry sync、build 通过；Core 定向 Go 测试、Go build、安装脚本语法与真实浏览器路由通过；Agent 定向 Go 测试、Go build、安装脚本语法通过；主题 lint、build、zip 结构与 `admin-app` 排除检查通过。
+
 ## 当前任务（2026-08-30，TZA Probe / Glassmorphism 结构重构）
 
 - 状态：published_to_forks，主题 v3.3.13 Release 已发布并完成线上资产复验

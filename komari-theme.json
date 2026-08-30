@@ -1,10 +1,10 @@
 {
-  "name": "Komari Glassmorphism",
+  "name": "TZA Glassmorphism",
   "short": "Glassmorphism",
-  "description": "A Glassmorphism theme for Komari with China Telecom, China Unicom and China Mobile latency/loss panels",
-  "version": "3.3.13",
+  "description": "A Glassmorphism display theme for TZA Probe with Telecom, Unicom and Mobile latency, loss and return-route panels",
+  "version": "3.3.14",
   "author": "sanrokamlan",
-  "url": "https://github.com/sanrokamlan-prog/komari-theme-Glassmorphism",
+  "url": "https://github.com/leeska/komari-theme-Glassmorphism",
   "preview": "preview.png",
   "configuration": {
     "type": "managed",

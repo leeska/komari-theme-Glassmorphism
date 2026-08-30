@@ -34,10 +34,10 @@ const formattedServerVersion = computed(() => serverVersion.value?.version ?? ''
           :content="formattedServerVersion"
         >
           <a
-            href="https://github.com/komari-monitor/komari" target="_blank" rel="noopener noreferrer"
+            href="https://github.com/leeska/TZA-Probe" target="_blank" rel="noopener noreferrer"
             class="transition-opacity hover:opacity-80"
           >
-            <span class="font-medium text-foreground">Komari Monitor</span>
+            <span class="font-medium text-foreground">TZA Probe Core</span>
           </a>
         </DataTooltip>
       </div>
@@ -49,10 +49,10 @@ const formattedServerVersion = computed(() => serverVersion.value?.version ?? ''
           :content="`v${buildVersion}\n${buildGitHash}`"
         >
           <a
-            href="https://github.com/sanrokamlan-prog/komari-theme-Glassmorphism" target="_blank" rel="noopener noreferrer"
+            href="https://github.com/leeska/komari-theme-Glassmorphism" target="_blank" rel="noopener noreferrer"
             class="transition-opacity hover:opacity-80"
           >
-            <span class="font-medium text-foreground">Komari Glassmorphism</span>
+            <span class="font-medium text-foreground">TZA Glassmorphism</span>
           </a>
         </DataTooltip>
       </div>

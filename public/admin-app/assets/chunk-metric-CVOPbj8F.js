@@ -1,1 +1,0 @@
-function i(s){const t=s.trim().toLowerCase();return!t.startsWith("mysql://")&&!t.startsWith("postgres://")&&!t.startsWith("postgresql://")&&!t.includes("@tcp(")&&!t.includes("@unix(")&&!t.includes("dbname=")}export{i};

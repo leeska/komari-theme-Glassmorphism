@@ -1,1 +1,0 @@
-import{M as t,ah as o}from"./entry-index-C4GMepko.js";import{n as s}from"./chunk-base-button-CasxpLBP.js";const m=t.forwardRef(({className:a,...r},e)=>t.createElement(s,{...r,ref:e,className:o("rt-Button",a)}));m.displayName="Button";export{m as o};

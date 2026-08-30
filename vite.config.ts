@@ -1,6 +1,6 @@
 import type { Plugin } from 'vite'
 import { execSync } from 'node:child_process'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, rmSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { resolve } from 'node:path'
 import process from 'node:process'
@@ -45,6 +45,18 @@ function getCommitHash(): string {
   }
   catch {
     return 'unknown'
+  }
+}
+
+function excludeEmbeddedAdmin(): Plugin {
+  return {
+    name: 'exclude-embedded-admin',
+    apply: 'build',
+    writeBundle: () => {
+      const copiedAdminDir = resolve(__dirname, 'dist', 'admin-app')
+      if (existsSync(copiedAdminDir))
+        rmSync(copiedAdminDir, { force: true, recursive: true })
+    },
   }
 }
 
@@ -118,6 +130,7 @@ export default defineConfig({
     vue(),
     vueDevTools(),
     tailwindcss(),
+    excludeEmbeddedAdmin(),
     komariThemeZip(),
   ],
   resolve: {

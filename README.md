@@ -1,10 +1,10 @@
 <div align="center">
 
-# 🌌 Komari Glassmorphism
+# 🌌 TZA Glassmorphism
 
-## 给 Komari Monitor 的一套「玻璃拟态 · 运维驾驶舱」主题
+## 给 TZA Probe 的一套「玻璃拟态 · 运维驾驶舱」展示主题
 
-从好看的监控首页，逐步成长为好用、可配置、适合长期运行的 Komari 主题。
+主题只负责公开监控与探测结果展示，管理、调度和配置由 TZA Probe Core 自己承担。
 
 ![Version](https://img.shields.io/github/v/release/sanrokamlan-prog/komari-theme-Glassmorphism?style=for-the-badge&label=release&color=10b981)
 ![Vue](https://img.shields.io/badge/Vue-3-42b883?style=for-the-badge&logo=vue.js)
@@ -56,9 +56,18 @@
 
 ---
 
+## 🧭 v3.3.14 TZA Probe 职责拆分
+
+- Glassmorphism 不再内嵌或桥接管理后台，主题包只包含公开展示页面与运行时图片。
+- `/admin`、`/admin/probes`、`/terminal` 和其他管理路由统一由 TZA Probe Core 内置 Web 提供，刷新真实路由不会回落到主题首页。
+- 本地残留的 `public/admin-app` 会在构建阶段明确排除，不会进入 Release 主题 zip。
+- 探针目标、IPv4/IPv6、延迟与回程周期仍由 Core 独立保存；主题只读取结构化结果。
+
+---
+
 ## 🛰️ v3.3.13 探针中心与展示重构
 
-- 后台新增独立的 `探针中心`，默认直接进入延迟目标列表；延迟与回程使用两个明确工作区，支持按地区、运营商、IPv4/IPv6 和地址筛选，并一次保存全部执行策略。
+- TZA Probe Core 后台新增独立的 `探针中心`，默认直接进入延迟目标列表；延迟与回程使用两个明确工作区，支持按地区、运营商、IPv4/IPv6 和地址筛选，并一次保存全部执行策略。
 - 管理端探针页面补齐简体中文、繁体中文、英语、日语和印尼语；通用设置仅保留迁移入口，不再混放探测业务控件。
 - TZA Probe Core 将探针领域整理到 `internal/probe`，延迟与回程分别维护；186 个内置目标组合只从本地编译目录读取，运行时不请求远程目录。
 - TZA Probe Agent 的线路分类改为本地确定性前缀规则，不再访问外部 ASN/Whois 服务；受限 traceroute 的目标、超时、并发和跳数限制保持不变。
@@ -68,7 +77,7 @@
 
 ## 📍 v3.3.12 延迟与回程独立选择
 
-- 配置入口：`后台管理 → 探针中心`。主题设置只保留展示偏好，探测开关、目标与周期全部由 TZA Probe Core 管理。
+- 配置入口：TZA Probe Core 的 `/admin/probes`。主题设置只保留展示偏好，探测开关、目标与周期全部由 Core 管理。
 - “三网延迟监控”和“三网回程线路”现在是两套独立列表，均可逐项选择地区、电信/联通/移动以及 IPv4/IPv6，默认列表为空。
 - 延迟选择会生成 TZA 管理的 TCP Ping 任务，默认每 60 秒检测一次；清空列表只删除 TZA 管理的任务，不影响手工创建的 Ping 任务。
 - 回程选择仅在启用开关打开且列表非空时调度，默认每 60 分钟检测一次；由 TZA Probe Agent 执行受限 traceroute。
@@ -86,7 +95,7 @@
 
 - 节点卡片中的电信、联通、移动 Ping 数据现在分别显示 IPv4 和 IPv6；新版本 Agent 可以在 Ping 任务或 Metric 中上报 `family` / `ip_version`，旧任务默认按 IPv4 兼容。
 - 主题从 `public:getCarrierRouteStats` 读取 Core 的启用状态、周期、目标选择和结果，展示 IPv4/IPv6、三网运营商、线路标签、延迟、丢包、状态和最后检测时间；探测配置不再在主题中重复维护。
-- 回程探测必须由 Komari Agent/Core 或独立受控服务执行。主题不会执行 TcpQuality 的 Bash、rootfs、`traceroute`、`nexttrace`、原始 TCP 探测或测速；TcpQuality 的回程识别思路被重构为有限目标集、超时/并发控制和结构化 JSON 结果。
+- 回程探测必须由 TZA Probe Agent/Core 执行。主题不会执行 TcpQuality 的 Bash、rootfs、`traceroute`、`nexttrace`、原始 TCP 探测或测速；TcpQuality 的回程识别思路被重构为有限目标集、超时/并发控制和结构化 JSON 结果。
 
 ### 回程 RPC 约定
 
@@ -531,14 +540,14 @@ API / RPC
 Komari 后台支持直接填写仓库地址并拉取最新 Release：
 
 ```text
-https://github.com/sanrokamlan-prog/komari-theme-Glassmorphism
+https://github.com/leeska/komari-theme-Glassmorphism
 ```
 
 ### 方式二：手动安装 Release
 
-1. 打开 [Releases](https://github.com/sanrokamlan-prog/komari-theme-Glassmorphism/releases)
+1. 打开 [Releases](https://github.com/leeska/komari-theme-Glassmorphism/releases)
 2. 下载最新的 `komari-theme-Glassmorphism-build-*.zip`
-3. 登录 Komari Monitor 后台，进入 **设置 → 主题管理**
+3. 登录 TZA Probe 后台，进入 **平台 → 主题管理**
 4. 上传 zip 并启用主题
 5. 在主题设置中调整视觉、卡片、快捷控制和高级工具
 
