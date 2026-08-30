@@ -8,7 +8,7 @@
 - Web：监控中心统一承载延迟与回程任务；旧 `/admin/probes`、`/admin/ping` 跳转 `/admin/monitoring`；添加/编辑支持内置域名、自定义地址和多机器绑定，五种语言补齐任务文案。
 - Theme：节点卡片延迟/回程切换按钮扩大并阻止事件冒泡；回程按 IPv4/IPv6 分栏、三网固定顺序显示组合线路，点击行查看带线路标签和脱敏地址的 Trace；同地区多任务按任务 ID 独立展示。
 - 验证：Core 定向 Go 测试、Agent 回程测试、Core `go build`、Web `npm run lint/build`、Theme `bun run lint/build` 均通过；未在浏览器安装向导中提交管理员密码，因此真实后台登录态未变更。Core 未登录 `/admin/monitoring` 已确认跳转 `/install`。
-- 已推送：Core `8d4e0e5`、Agent `b9034cc`、Web `4c4fb38`、Theme `d2b551b`。
+- 已推送：Core `8d4e0e5`、Agent `b9034cc`、Web `4c4fb38`、Theme `35afa05`（含 `a7507aa` 文档提交）。
 
 ## 当前任务（2026-08-30，TZA Probe 独立产品重构）
 
