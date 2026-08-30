@@ -7,8 +7,6 @@ export function useNodeCarrierRouteStats(
   uuid: MaybeRefOrGetter<string>,
   options: {
     enabled?: MaybeRefOrGetter<boolean>
-    intervalMinutes?: MaybeRefOrGetter<number>
-    region?: MaybeRefOrGetter<string | undefined>
   } = {},
 ) {
   const results = ref<CarrierRouteResult[]>([])
@@ -18,21 +16,30 @@ export function useNodeCarrierRouteStats(
   const enabled = ref<boolean | undefined>(undefined)
   const selections = ref<CarrierRouteSelection[]>([])
   const selectionsKnown = ref(false)
-  let timer: ReturnType<typeof setInterval> | null = null
+  const intervalMinutes = ref(60)
+  let timer: ReturnType<typeof setTimeout> | null = null
+  let disposed = false
   let requestKey: { uuid: string, families: CarrierRouteFamily[], region?: string, maxAgeSeconds?: number } | null = null
 
   const resolved = computed(() => ({
     uuid: toValue(uuid).trim(),
     enabled: toValue(options.enabled) !== false,
-    intervalMinutes: Math.min(1440, Math.max(15, Math.floor(toValue(options.intervalMinutes) ?? 60))),
-    region: toValue(options.region)?.trim() || undefined,
   }))
 
   function stopTimer(): void {
     if (timer) {
-      clearInterval(timer)
+      clearTimeout(timer)
       timer = null
     }
+  }
+
+  function scheduleRefresh(): void {
+    stopTimer()
+    if (disposed || !resolved.value.enabled || !resolved.value.uuid)
+      return
+    timer = setTimeout(() => {
+      void refresh().finally(scheduleRefresh)
+    }, intervalMinutes.value * 60_000)
   }
 
   async function refresh(): Promise<void> {
@@ -49,18 +56,20 @@ export function useNodeCarrierRouteStats(
     }
     loading.value = results.value.length === 0
     error.value = null
-    requestKey = { uuid: next.uuid, families: ['ipv4', 'ipv6'], region: next.region, maxAgeSeconds: next.intervalMinutes * 60 * 2 }
+    requestKey = { uuid: next.uuid, families: ['ipv4', 'ipv6'] }
     try {
       const snapshot = await loadCarrierRouteStats(requestKey)
       results.value = snapshot.results
       enabled.value = snapshot.enabled
       selections.value = snapshot.selections
       selectionsKnown.value = snapshot.selectionsKnown
+      if (typeof snapshot.intervalSeconds === 'number')
+        intervalMinutes.value = Math.min(1440, Math.max(15, Math.ceil(snapshot.intervalSeconds / 60)))
       lastCheckedAt.value = snapshot.results.reduce<string | null>((latest, item) => {
         if (!latest || new Date(item.checked_at).getTime() > new Date(latest).getTime())
           return item.checked_at
         return latest
-      }, null)
+      }, snapshot.checkedAt || null)
     }
     catch (cause) {
       error.value = cause instanceof Error ? cause.message : '获取三网回程线路失败'
@@ -72,13 +81,11 @@ export function useNodeCarrierRouteStats(
 
   watch(resolved, () => {
     stopTimer()
-    void refresh()
-    if (resolved.value.enabled && resolved.value.uuid) {
-      timer = setInterval(() => void refresh(), resolved.value.intervalMinutes * 60_000)
-    }
+    void refresh().finally(scheduleRefresh)
   }, { immediate: true })
 
   onScopeDispose(() => {
+    disposed = true
     stopTimer()
     if (requestKey)
       abortCarrierRouteStats(requestKey)

@@ -115,7 +115,7 @@ export async function loadCarrierRouteStats(query: CarrierRouteQuery): Promise<C
         : null
       const checkedAt = typeof payload.checked_at === 'string'
         ? payload.checked_at
-        : typeof nestedPayload?.checked_at === 'string' ? nestedPayload.checked_at : new Date().toISOString()
+        : typeof nestedPayload?.checked_at === 'string' ? nestedPayload.checked_at : ''
       const rawResults = Array.isArray(payload.results)
         ? payload.results
         : Array.isArray(nestedPayload?.results)

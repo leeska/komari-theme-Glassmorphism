@@ -28,8 +28,11 @@ async function expectNodeMetricIcons(page: Page): Promise<void> {
 
 async function expectNodePingBars(page: Page): Promise<void> {
   const card = page.getByRole('button', { name: '查看节点 主控-洛杉矶 详情' })
-  for (const metric of ['latency', 'loss']) {
-    const bars = card.locator(`[data-node-ping-bars="${metric}"]`)
+  const barsByMetric = [
+    card.locator('[data-node-ping-bars="latency"]'),
+    card.locator('[data-node-ping-loss-bars]').first(),
+  ]
+  for (const bars of barsByMetric) {
     await expect(bars).toBeVisible()
     await expect.poll(() => bars.evaluate(element => element.getBoundingClientRect().width)).toBeGreaterThan(0)
   }
@@ -52,7 +55,8 @@ test('node cards show the three China carrier ping panels', async ({ page }) => 
   const card = page.getByRole('button', { name: '查看节点 主控-洛杉矶 详情' })
   const latencyRows = card.locator('[data-node-ping-bars="latency"] [data-carrier-ping]')
   await expect(card.locator('[data-node-ping-bars="latency"]')).toBeVisible()
-  await expect(card.locator('[data-node-ping-bars="loss"]')).toBeVisible()
+  await expect(card.locator('[data-node-ping-loss-bars]')).toHaveCount(6)
+  await expect(card.locator('[data-node-ping-loss-bars]').first()).toBeVisible()
   await expect(latencyRows).toHaveCount(3)
   for (const [index, carrier] of ['telecom', 'unicom', 'mobile'].entries())
     await expect(latencyRows.nth(index)).toHaveAttribute('data-carrier-ping', carrier)
@@ -65,7 +69,7 @@ test('node cards filter China carrier ping tasks by configured region', async ({
 
   const card = page.getByRole('button', { name: '查看节点 主控-洛杉矶 详情' })
   const latencyRows = card.locator('[data-node-ping-bars="latency"] [data-carrier-ping]')
-  await expect(card.locator('[title="广东"]')).toHaveCount(2)
+  await expect(card.locator('[title="广东"]')).toHaveCount(1)
   await expect(latencyRows.nth(0)).toContainText('电信')
   await expect(latencyRows.nth(0)).toContainText('130 ms')
   await expect(latencyRows.nth(0)).toHaveAttribute('title', /广东电信/)
@@ -98,7 +102,9 @@ test('node cards show optional structured carrier route results', async ({ page 
   await installKomariFixture(page, { carrierRouteEnabled: true, hideEarth: true })
   await openStablePage(page)
 
-  const panel = page.getByRole('button', { name: '查看节点 主控-洛杉矶 详情' }).locator('[data-node-carrier-route]')
+  const card = page.getByRole('button', { name: '查看节点 主控-洛杉矶 详情' })
+  await card.getByRole('tab', { name: '回程' }).click()
+  const panel = card.locator('[data-node-carrier-route]')
   await expect(panel).toBeVisible()
   await expect(panel.locator('[data-carrier-route-family="ipv4"] [data-carrier-route]')).toHaveCount(3)
   await expect(panel.locator('[data-carrier-route-family="ipv6"] [data-carrier-route]')).toHaveCount(3)

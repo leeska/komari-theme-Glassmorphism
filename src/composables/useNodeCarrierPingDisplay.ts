@@ -31,6 +31,7 @@ export interface CarrierPingFamilyDisplay {
   lossBars: CarrierPingBar[]
   latencyTooltip: string
   lossTooltip: string
+  state: 'loading' | 'error' | 'unmonitored' | 'empty' | 'ready'
 }
 
 const EMPTY_PING_BAR_COUNT = 20
@@ -120,7 +121,7 @@ export function useNodeCarrierPingDisplay(
     hours: pingStatsHours,
     enabled: pingStatsEnabled,
     maxCount: PING_SUMMARY_MAX_COUNT,
-    region: () => appStore.carrierPingRegion,
+    region: () => appStore.carrierDisplayRegion,
   })
 
   const carrierDisplays = computed<CarrierPingDisplay[]>(() => {
@@ -135,10 +136,20 @@ export function useNodeCarrierPingDisplay(
       const families = (['ipv4', 'ipv6'] as const).map((family) => {
         const carrier = states.find(item => item.family === family)
         const familyLabel = FAMILY_LABELS[family][appStore.lang === 'zh-CN' ? 'zh' : 'en']
-        const scopedLabel = appStore.carrierPingRegion ? `${appStore.carrierPingRegion}${label}` : label
+        const scopedLabel = appStore.carrierDisplayRegion ? `${appStore.carrierDisplayRegion}${label}` : label
         const taskHint = carrier?.taskNames.length
           ? carrier.taskNames.join(' / ')
           : appStore.lang === 'zh-CN' ? `未匹配${scopedLabel} ${familyLabel} Ping 任务` : `No ${scopedLabel} ${familyLabel} ping task matched`
+        const hasTask = Boolean(carrier?.taskNames.length)
+        const state: CarrierPingFamilyDisplay['state'] = carrierStats.loading.value
+          ? 'loading'
+          : carrierStats.error.value
+            ? 'error'
+            : !hasTask
+                ? 'unmonitored'
+                : !carrier?.stats.hasData && !carrier?.hasLatency
+                    ? 'empty'
+                    : 'ready'
         const emptyReason = carrierStats.loading.value
           ? (appStore.lang === 'zh-CN' ? '加载中' : 'Loading')
           : carrierStats.error.value
@@ -153,12 +164,24 @@ export function useNodeCarrierPingDisplay(
         const lossBars = stats?.history.length
           ? buildHistoryBars(`${label} ${familyLabel}`, key, stats.history, 'loss')
           : buildEmptyBars(`${key}-${family}`, 'loss', emptyReason)
-        const latencyDisplay = carrier?.hasLatency
-          ? `${Math.round(stats?.avgLatency ?? 0)} ms`
-          : carrierStats.loading.value ? (appStore.lang === 'zh-CN' ? '加载中' : 'Loading') : '-'
-        const lossDisplay = stats?.hasData
-          ? `${stats.avgLoss.toFixed(1)}%`
-          : carrierStats.loading.value ? (appStore.lang === 'zh-CN' ? '加载中' : 'Loading') : '-'
+        const latencyDisplay = state === 'loading'
+          ? (appStore.lang === 'zh-CN' ? '加载中' : 'Loading')
+          : state === 'error'
+            ? (appStore.lang === 'zh-CN' ? '加载失败' : 'Error')
+            : state === 'unmonitored'
+              ? (appStore.lang === 'zh-CN' ? '未监控' : 'Off')
+              : state === 'empty'
+                ? (appStore.lang === 'zh-CN' ? '暂无数据' : 'No data')
+                : carrier?.hasLatency ? `${Math.round(stats?.avgLatency ?? 0)} ms` : '-'
+        const lossDisplay = state === 'loading'
+          ? (appStore.lang === 'zh-CN' ? '加载中' : 'Loading')
+          : state === 'error'
+            ? (appStore.lang === 'zh-CN' ? '加载失败' : 'Error')
+            : state === 'unmonitored'
+              ? (appStore.lang === 'zh-CN' ? '未监控' : 'Off')
+              : state === 'empty'
+                ? (appStore.lang === 'zh-CN' ? '暂无数据' : 'No data')
+                : stats?.hasData ? `${stats.avgLoss.toFixed(1)}%` : '-'
         const latencyTooltip = carrier?.hasLatency
           ? `${taskHint}\n${appStore.lang === 'zh-CN' ? '平均延迟' : 'Average latency'} ${latencyDisplay}`
           : taskHint
@@ -168,7 +191,7 @@ export function useNodeCarrierPingDisplay(
         const lossTooltip = stats?.hasData
           ? `${taskHint}\n${appStore.lang === 'zh-CN' ? '平均丢包' : 'Average loss'} ${lossDisplay}${volatility}`
           : taskHint
-        return { family, label: familyLabel, latencyDisplay, lossDisplay, latencyBars, lossBars, latencyTooltip, lossTooltip }
+        return { family, label: familyLabel, latencyDisplay, lossDisplay, latencyBars, lossBars, latencyTooltip, lossTooltip, state }
       })
       return {
         key,

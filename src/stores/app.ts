@@ -960,19 +960,20 @@ const useAppStore = defineStore('app', () => {
     return 'compact'
   })
 
-  const carrierPingRegion = computed<string>(() => {
+  // Display filter only applies to latency task names. Route selections are
+  // owned by Core and are intentionally never inferred from this theme value.
+  const carrierDisplayRegion = computed<string>(() => {
     const settings = themeSettings.value
-    const selected = readStringSetting(settings, 'carrierPingRegion')
+    const selected = readStringSetting(settings, 'carrierDisplayRegion') || readStringSetting(settings, 'carrierPingRegion')
     if (!selected || selected === '全部')
       return ''
     if (selected === '自定义')
-      return readStringSetting(settings, 'carrierPingRegionCustom')
+      return readStringSetting(settings, 'carrierDisplayRegionCustom') || readStringSetting(settings, 'carrierPingRegionCustom')
     return selected
   })
 
-  const carrierRouteEnabled = computed<boolean>(() => readBooleanSetting(themeSettings.value, 'carrierRouteEnabled', false))
-
-  const carrierRouteIntervalMinutes = computed<number>(() => readNumberSetting(themeSettings.value, 'carrierRouteIntervalMinutes', 60, 15, 1440))
+  // Compatibility alias for older composables and custom extensions.
+  const carrierPingRegion = computed<string>(() => carrierDisplayRegion.value)
 
   // 当前实际使用的视图模式
   const nodeViewMode = computed<NodeViewMode>({
@@ -1322,8 +1323,7 @@ const useAppStore = defineStore('app', () => {
     defaultViewMode,
     nodeCardSize,
     carrierPingRegion,
-    carrierRouteEnabled,
-    carrierRouteIntervalMinutes,
+    carrierDisplayRegion,
     rpcTransportMode,
     byteDecimals,
     alertEnabled,

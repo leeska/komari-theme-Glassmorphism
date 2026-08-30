@@ -9,6 +9,7 @@ export interface CarrierRouteDisplay {
   key: string
   family: CarrierRouteFamily
   familyLabel: string
+  region: string
   carrier: CarrierRouteCarrier | string
   carrierLabel: string
   route: string
@@ -27,6 +28,20 @@ const CARRIERS: Array<{ key: CarrierRouteCarrier, zh: string, en: string }> = [
   { key: 'mobile', zh: '移动', en: 'Mobile' },
 ]
 
+function selectionKey(family: CarrierRouteFamily, carrier: string, region: string): string {
+  return `${family}:${carrier}:${region.trim().toLocaleLowerCase()}`
+}
+
+function routeSort(left: CarrierRouteDisplay, right: CarrierRouteDisplay): number {
+  const familyOrder = FAMILIES.indexOf(left.family) - FAMILIES.indexOf(right.family)
+  if (familyOrder)
+    return familyOrder
+  const carrierOrder = CARRIERS.findIndex(item => item.key === left.carrier) - CARRIERS.findIndex(item => item.key === right.carrier)
+  if (carrierOrder)
+    return carrierOrder
+  return left.region.localeCompare(right.region, 'zh-CN')
+}
+
 function statusLabel(status: string, lang: string): string {
   if (status === 'ok')
     return lang === 'zh-CN' ? '正常' : 'OK'
@@ -39,20 +54,32 @@ function statusLabel(status: string, lang: string): string {
 
 export function useNodeCarrierRouteDisplay(uuid: MaybeRefOrGetter<string>) {
   const appStore = useAppStore()
-  const routeStats = useNodeCarrierRouteStats(uuid, {
-    enabled: () => appStore.carrierRouteEnabled,
-    intervalMinutes: () => appStore.carrierRouteIntervalMinutes,
-    region: () => appStore.carrierPingRegion,
-  })
+  const routeStats = useNodeCarrierRouteStats(uuid)
 
   const displays = computed<CarrierRouteDisplay[]>(() => {
     const lang = appStore.lang
     const results = routeStats.results.value
-    const configured = new Set(routeStats.selections.value.map(selection => `${selection.family}:${selection.carrier}:${selection.region}`))
-    return FAMILIES.flatMap(family => CARRIERS.map((definition) => {
-      const result = results.find(item => item.family === family && item.carrier === definition.key)
+    const selections = routeStats.selections.value
+      .filter(selection => FAMILIES.includes(selection.family) && CARRIERS.some(item => item.key === selection.carrier))
+    const targets = routeStats.selectionsKnown.value
+      ? selections
+      : results.map(result => ({ region: result.region || '全国', carrier: result.carrier, family: result.family }))
+    const seen = new Set<string>()
+    return targets.reduce<CarrierRouteDisplay[]>((items, target) => {
+      const family = target.family
+      const definition = CARRIERS.find(item => item.key === target.carrier)
+      if (!definition)
+        return items
+      const region = target.region?.trim() || '全国'
+      const key = selectionKey(family, definition.key, region)
+      if (seen.has(key))
+        return items
+      seen.add(key)
+      const result = results
+        .filter(item => item.family === family && item.carrier === definition.key && (item.region || '全国').trim().toLocaleLowerCase() === region.toLocaleLowerCase())
+        .sort((left, right) => new Date(right.checked_at).getTime() - new Date(left.checked_at).getTime())[0]
       const monitored = routeStats.selectionsKnown.value
-        ? routeStats.enabled.value === true && [...configured].some(key => key.startsWith(`${family}:${definition.key}:`))
+        ? routeStats.enabled.value !== false
         : Boolean(result)
       const familyLabel = family === 'ipv4' ? 'IPv4' : 'IPv6'
       const carrierText = lang === 'zh-CN' ? definition.zh : definition.en
@@ -60,18 +87,21 @@ export function useNodeCarrierRouteDisplay(uuid: MaybeRefOrGetter<string>) {
       const loss = monitored && typeof result?.loss_percent === 'number' ? `${result.loss_percent.toFixed(1)}%` : '-'
       const route = monitored ? result?.route?.trim() || '-' : '-'
       const status = monitored
-        ? statusLabel(result?.status ?? 'failed', lang)
+        ? result
+          ? statusLabel(result.status, lang)
+          : lang === 'zh-CN' ? '暂无结果' : 'No result'
         : lang === 'zh-CN' ? '未监控' : 'Not monitored'
       const checkedAt = result?.checked_at ? formatDateTime(result.checked_at, 'MM-dd HH:mm') : '-'
       const tooltip = result
-        ? `${familyLabel} ${carrierText}\n${route}\n${status}\n${checkedAt}`
+        ? `${familyLabel} ${region} ${carrierText}\n${route}\n${status}\n${checkedAt}`
         : monitored
-          ? lang === 'zh-CN' ? `${familyLabel} ${carrierText}暂无回程结果` : `No ${familyLabel} ${carrierText} route result`
-          : lang === 'zh-CN' ? `${familyLabel} ${carrierText}未加入监控` : `${familyLabel} ${carrierText} is not monitored`
-      return {
-        key: `${family}-${definition.key}`,
+          ? lang === 'zh-CN' ? `${familyLabel} ${region} ${carrierText}暂无回程结果` : `No ${familyLabel} ${region} ${carrierText} route result`
+          : lang === 'zh-CN' ? `${familyLabel} ${region} ${carrierText}未加入监控` : `${familyLabel} ${region} ${carrierText} is not monitored`
+      items.push({
+        key: `${family}-${definition.key}-${region}`,
         family,
         familyLabel,
+        region,
         carrier: result?.carrier ?? definition.key,
         carrierLabel: carrierText,
         route,
@@ -81,8 +111,9 @@ export function useNodeCarrierRouteDisplay(uuid: MaybeRefOrGetter<string>) {
         monitored,
         checkedAt,
         tooltip,
-      }
-    }))
+      })
+      return items
+    }, []).sort(routeSort)
   })
 
   return {
@@ -90,6 +121,8 @@ export function useNodeCarrierRouteDisplay(uuid: MaybeRefOrGetter<string>) {
     loading: routeStats.loading,
     error: routeStats.error,
     lastCheckedAt: routeStats.lastCheckedAt,
+    enabled: routeStats.enabled,
+    selectionsKnown: routeStats.selectionsKnown,
     refresh: routeStats.refresh,
   }
 }

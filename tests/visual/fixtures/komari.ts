@@ -29,7 +29,6 @@ export interface VisualFixtureOptions {
   carrierPingRegion?: string
   carrierPingIpv6?: boolean
   carrierRouteEnabled?: boolean
-  carrierRouteIntervalMinutes?: number
   generalCardKeys?: string[]
 }
 
@@ -368,14 +367,20 @@ async function handleRpc(route: Route, clientFixtures = clients, options: Visual
       result = options.carrierRouteEnabled
         ? {
             checked_at: FIXED_NOW,
-            source_version: 'komari-carrier-route/visual',
+            enabled: true,
+            interval_seconds: 3600,
+            source_version: 'tza-probe/visual',
+            selections: [
+              ...['telecom', 'unicom', 'mobile'].map(carrier => ({ region: '广东', carrier, family: 'ipv4' })),
+              ...['telecom', 'unicom', 'mobile'].map(carrier => ({ region: '广东', carrier, family: 'ipv6' })),
+            ],
             results: [
-              { node_uuid: uuid, family: 'ipv4', carrier: 'telecom', route: 'CN2', status: 'ok', latency_ms: 42, loss_percent: 0, sent: 3, received: 3, checked_at: FIXED_NOW },
-              { node_uuid: uuid, family: 'ipv4', carrier: 'unicom', route: '4837', status: 'ok', latency_ms: 55, loss_percent: 0, sent: 3, received: 3, checked_at: FIXED_NOW },
-              { node_uuid: uuid, family: 'ipv4', carrier: 'mobile', route: 'CMI', status: 'timeout', latency_ms: null, loss_percent: 100, sent: 3, received: 0, checked_at: FIXED_NOW },
-              { node_uuid: uuid, family: 'ipv6', carrier: 'telecom', route: '163', status: 'ok', latency_ms: 48, loss_percent: 0, sent: 3, received: 3, checked_at: FIXED_NOW },
-              { node_uuid: uuid, family: 'ipv6', carrier: 'unicom', route: '9929', status: 'ok', latency_ms: 61, loss_percent: 0, sent: 3, received: 3, checked_at: FIXED_NOW },
-              { node_uuid: uuid, family: 'ipv6', carrier: 'mobile', route: 'CMIN2->CMI', status: 'ok', latency_ms: 73, loss_percent: 1.2, sent: 3, received: 3, checked_at: FIXED_NOW },
+              { node_uuid: uuid, region: '广东', family: 'ipv4', carrier: 'telecom', route: 'CN2', status: 'ok', latency_ms: 42, loss_percent: 0, sent: 3, received: 3, checked_at: FIXED_NOW },
+              { node_uuid: uuid, region: '广东', family: 'ipv4', carrier: 'unicom', route: '4837', status: 'ok', latency_ms: 55, loss_percent: 0, sent: 3, received: 3, checked_at: FIXED_NOW },
+              { node_uuid: uuid, region: '广东', family: 'ipv4', carrier: 'mobile', route: 'CMI', status: 'timeout', latency_ms: null, loss_percent: 100, sent: 3, received: 0, checked_at: FIXED_NOW },
+              { node_uuid: uuid, region: '广东', family: 'ipv6', carrier: 'telecom', route: '163', status: 'ok', latency_ms: 48, loss_percent: 0, sent: 3, received: 3, checked_at: FIXED_NOW },
+              { node_uuid: uuid, region: '广东', family: 'ipv6', carrier: 'unicom', route: '9929', status: 'ok', latency_ms: 61, loss_percent: 0, sent: 3, received: 3, checked_at: FIXED_NOW },
+              { node_uuid: uuid, region: '广东', family: 'ipv6', carrier: 'mobile', route: 'CMIN2->CMI', status: 'ok', latency_ms: 73, loss_percent: 1.2, sent: 3, received: 3, checked_at: FIXED_NOW },
             ],
           }
         : null
@@ -411,9 +416,7 @@ export async function installKomariFixture(page: Page, options: VisualFixtureOpt
     rpcTransportMode: 'http',
     defaultViewMode: options.viewMode ?? 'card',
     nodeCardSize: options.nodeCardSize ?? 'compact',
-    carrierPingRegion: options.carrierPingRegion ?? '全部',
-    carrierRouteEnabled: options.carrierRouteEnabled ?? false,
-    carrierRouteIntervalMinutes: options.carrierRouteIntervalMinutes ?? 30,
+    carrierDisplayRegion: options.carrierPingRegion ?? '全部',
     earthRenderer: options.earthRenderer ?? 'realistic',
     hideEarth: options.hideEarth ?? false,
     stopEarth: true,

@@ -2,12 +2,10 @@
 import type { NodeData } from '@/stores/nodes'
 import { Icon } from '@iconify/vue'
 import { computed } from 'vue'
+import NetworkProbeSummary from '@/components/NetworkProbeSummary.vue'
 import { Badge } from '@/components/ui/badge'
 import { CardX } from '@/components/ui/card-x'
-import { DataTooltip } from '@/components/ui/data-tooltip'
 import { ProgressThin } from '@/components/ui/progress-thin'
-import { useNodeCarrierPingDisplay } from '@/composables/useNodeCarrierPingDisplay'
-import { useNodeCarrierRouteDisplay } from '@/composables/useNodeCarrierRouteDisplay'
 import { useAppStore } from '@/stores/app'
 import { formatBytesPerSecondWithConfig, formatBytesWithConfig, formatDateTime, getStatus, getUptimeDays } from '@/utils/helper'
 import { getDiskPercentage, getMemoryPercentage, getTrafficUsed, getTrafficUsedPercentage, hasTrafficLimit } from '@/utils/nodeMetricsHelper'
@@ -65,16 +63,6 @@ const nodeCardMetricGridClass = 'grid-cols-3'
 const nodeCardMetricBoxClass = computed(() => isMiniNodeCard.value
   ? 'px-1 py-1'
   : appStore.nodeCardSize === 'compact' ? 'px-1.5 py-1.5' : 'px-2 py-1.5')
-const nodeCardCarrierPingPanelClass = computed(() => {
-  if (appStore.nodeCardSize === 'large')
-    return 'h-[128px] gap-2 p-2'
-  if (appStore.nodeCardSize === 'comfortable')
-    return 'h-[120px] gap-1.5 p-2'
-  if (isMiniNodeCard.value)
-    return 'h-[92px] gap-1 p-1'
-  return 'h-[112px] gap-1.5 p-1.5'
-})
-const carrierPingScopeLabel = computed(() => appStore.carrierPingRegion || '三网')
 
 const formatBytes = (bytes: number) => formatBytesWithConfig(bytes, appStore.byteDecimals)
 const formatBytesPerSecond = (bytes: number) => formatBytesPerSecondWithConfig(bytes, appStore.byteDecimals)
@@ -90,21 +78,6 @@ const swapTooltip = computed(() => {
 })
 const diskPercentage = computed(() => getDiskPercentage(props.node))
 const diskStatus = computed(() => getStatus(diskPercentage.value))
-
-const { carrierDisplays } = useNodeCarrierPingDisplay(() => props.node.uuid, { enabled: () => props.pingEnabled })
-const { displays: carrierRouteDisplays, loading: carrierRouteLoading, error: carrierRouteError, lastCheckedAt: carrierRouteLastCheckedAt } = useNodeCarrierRouteDisplay(() => props.node.uuid)
-const carrierRouteFamilies = computed(() => (['ipv4', 'ipv6'] as const).map(family => ({
-  family,
-  label: family === 'ipv4' ? 'IPv4' : 'IPv6',
-  displays: carrierRouteDisplays.value.filter(item => item.family === family),
-})))
-const carrierRouteUpdatedLabel = computed(() => {
-  if (carrierRouteLoading.value)
-    return '检测中'
-  if (carrierRouteLastCheckedAt.value)
-    return `更新 ${formatDateTime(carrierRouteLastCheckedAt.value, 'MM-dd HH:mm')}`
-  return carrierRouteError.value ? '后端未提供结果' : '暂无结果'
-})
 
 const trafficUsedPercentage = computed(() => getTrafficUsedPercentage(props.node))
 const trafficUsed = computed(() => getTrafficUsed(props.node))
@@ -462,147 +435,13 @@ function hasRegion(region: string | null | undefined): boolean {
           </div>
         </div>
 
-        <!-- 电信 / 联通 / 移动三网延迟 + 丢包 -->
-        <div class="grid grid-cols-2 gap-1.5">
-          <button
-            type="button"
-            class="group/panel relative flex flex-col rounded-lg bg-slate-500/5 text-left"
-            :class="[nodeCardCarrierPingPanelClass, !props.node.online ? 'blur-xs opacity-50' : '']"
-            :aria-label="`${props.node.name} 三网延迟监测`"
-            @click.stop="emit('pingClick')"
-          >
-            <div class="flex items-center justify-between text-[11px] leading-none">
-              <span class="text-muted-foreground">延迟</span>
-              <span class="max-w-[72px] truncate text-[10px] text-muted-foreground/70" :title="carrierPingScopeLabel">{{ carrierPingScopeLabel }}</span>
-            </div>
-            <div data-node-ping-bars="latency" class="grid min-h-0 flex-1 grid-rows-3 gap-1">
-              <div
-                v-for="carrier in carrierDisplays"
-                :key="`${carrier.key}-latency`"
-                :data-carrier-ping="carrier.key"
-                class="flex min-h-0 flex-col gap-[2px]"
-                :title="carrier.latencyTooltip"
-              >
-                <div class="flex items-center justify-between text-[10px] leading-none">
-                  <span class="flex min-w-0 items-center gap-1 text-muted-foreground">
-                    <span class="size-1.5 shrink-0 rounded-full" :class="carrier.dotClass" />
-                    <span class="truncate">{{ carrier.label }}</span>
-                  </span>
-                  <span class="text-[9px] text-muted-foreground/70">IPv4 / IPv6</span>
-                </div>
-                <div class="grid grid-cols-2 gap-1">
-                  <div v-for="family in carrier.families" :key="`${carrier.key}-${family.family}`" :data-node-ping-family="family.family" class="min-w-0">
-                    <div class="flex items-center justify-between text-[9px] leading-none text-muted-foreground/80" :title="family.latencyTooltip">
-                      <span>{{ family.label }}</span>
-                      <span class="tabular-nums font-medium">{{ family.latencyDisplay }}</span>
-                    </div>
-                    <div
-                      class="mt-0.5 grid h-1 items-end gap-[1px] opacity-80 group-hover/panel:opacity-100"
-                      :style="{ gridTemplateColumns: `repeat(${family.latencyBars.length}, minmax(0, 1fr))` }"
-                    >
-                      <DataTooltip
-                        v-for="bar in family.latencyBars" :key="bar.key"
-                        placement="top" :content="bar.tooltip" class="h-full w-full"
-                      >
-                        <span
-                          class="block h-full w-full rounded-[1px] transition-transform duration-150 group-hover/data-tooltip:scale-y-160 group-hover/panel:opacity-60 group-hover/data-tooltip:!opacity-100"
-                          :class="bar.className"
-                        />
-                      </DataTooltip>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </button>
-
-          <button
-            type="button"
-            class="group/panel relative flex flex-col rounded-lg bg-slate-500/5 text-left"
-            :class="[nodeCardCarrierPingPanelClass, !props.node.online ? 'blur-xs opacity-50' : '']"
-            :aria-label="`${props.node.name} 三网丢包监测`"
-            @click.stop="emit('pingClick')"
-          >
-            <div class="flex items-center justify-between text-[11px] leading-none">
-              <span class="text-muted-foreground">丢包</span>
-              <span class="max-w-[72px] truncate text-[10px] text-muted-foreground/70" :title="carrierPingScopeLabel">{{ carrierPingScopeLabel }}</span>
-            </div>
-            <div data-node-ping-bars="loss" class="grid min-h-0 flex-1 grid-rows-3 gap-1">
-              <div
-                v-for="carrier in carrierDisplays"
-                :key="`${carrier.key}-loss`"
-                :data-carrier-ping="carrier.key"
-                class="flex min-h-0 flex-col gap-[2px]"
-                :title="carrier.lossTooltip"
-              >
-                <div class="flex items-center justify-between text-[10px] leading-none">
-                  <span class="flex min-w-0 items-center gap-1 text-muted-foreground">
-                    <span class="size-1.5 shrink-0 rounded-full" :class="carrier.dotClass" />
-                    <span class="truncate">{{ carrier.label }}</span>
-                  </span>
-                  <span class="text-[9px] text-muted-foreground/70">IPv4 / IPv6</span>
-                </div>
-                <div class="grid grid-cols-2 gap-1">
-                  <div v-for="family in carrier.families" :key="`${carrier.key}-${family.family}`" :data-node-ping-family="family.family" class="min-w-0">
-                    <div class="flex items-center justify-between text-[9px] leading-none text-muted-foreground/80" :title="family.lossTooltip">
-                      <span>{{ family.label }}</span>
-                      <span class="tabular-nums font-medium">{{ family.lossDisplay }}</span>
-                    </div>
-                    <div
-                      class="mt-0.5 grid h-1 items-end gap-[1px] opacity-80 group-hover/panel:opacity-100"
-                      :style="{ gridTemplateColumns: `repeat(${family.lossBars.length}, minmax(0, 1fr))` }"
-                    >
-                      <DataTooltip
-                        v-for="bar in family.lossBars" :key="bar.key"
-                        placement="top" :content="bar.tooltip" class="h-full w-full"
-                      >
-                        <span
-                          class="block h-full w-full rounded-[1px] transition-transform duration-150 group-hover/data-tooltip:scale-y-160 group-hover/panel:opacity-60 group-hover/data-tooltip:!opacity-100"
-                          :class="bar.className"
-                        />
-                      </DataTooltip>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </button>
-        </div>
-
-        <!-- Komari Agent/Core 生成的三网回程线路结果；主题只负责读取和展示。 -->
-        <div
-          v-if="appStore.carrierRouteEnabled"
-          data-node-carrier-route
-          class="rounded-lg bg-slate-500/5 p-1.5"
-        >
-          <div class="mb-1 flex items-center justify-between text-[10px] leading-none">
-            <span class="flex items-center gap-1 text-muted-foreground">
-              <Icon icon="tabler:route" width="11" height="11" />
-              <span>三网回程</span>
-            </span>
-            <span class="text-[9px] text-muted-foreground/70">{{ carrierRouteUpdatedLabel }}</span>
-          </div>
-          <div class="grid grid-cols-2 gap-1.5">
-            <div v-for="family in carrierRouteFamilies" :key="family.family" :data-carrier-route-family="family.family" class="min-w-0">
-              <div class="mb-0.5 text-[9px] font-medium text-muted-foreground">
-                {{ family.label }}
-              </div>
-              <div class="grid gap-0.5">
-                <div
-                  v-for="route in family.displays"
-                  :key="route.key"
-                  :data-carrier-route="route.key"
-                  class="flex min-w-0 items-center gap-1 text-[9px] leading-tight"
-                  :title="route.tooltip"
-                >
-                  <span class="w-6 shrink-0 text-muted-foreground">{{ route.carrierLabel }}</span>
-                  <span class="min-w-0 flex-1 truncate" :class="route.status === '正常' || route.status === 'OK' ? 'text-success' : 'text-warning'">{{ route.route }}</span>
-                  <span class="shrink-0 tabular-nums text-muted-foreground">{{ route.latency }} / {{ route.loss }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <!-- 统一探测摘要：内部切换延迟/回程，避免三个并列大面板挤占节点卡片。 -->
+        <NetworkProbeSummary
+          v-if="props.pingEnabled"
+          :node="props.node"
+          :ping-enabled="props.pingEnabled"
+          @ping-click="emit('pingClick')"
+        />
 
         <!-- 自定义标签 -->
         <div v-if="customTags.length > 0" class="flex flex-wrap gap-1">
