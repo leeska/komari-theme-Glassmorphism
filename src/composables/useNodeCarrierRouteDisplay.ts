@@ -90,7 +90,7 @@ export function useNodeCarrierRouteDisplay(uuid: MaybeRefOrGetter<string>) {
       const carrierText = lang === 'zh-CN' ? definition.zh : definition.en
       const latency = monitored && typeof result?.latency_ms === 'number' ? `${Math.round(result.latency_ms)} ms` : '-'
       const loss = monitored && typeof result?.loss_percent === 'number' ? `${result.loss_percent.toFixed(1)}%` : '-'
-      const rawRoute = result?.route_path?.length ? result.route_path.join(' -> ') : result?.route?.trim() || '-'
+      const rawRoute = result?.route_path?.length ? result.route_path.join('->') : result?.route?.trim() || '-'
       const route = monitored
         ? (UNKNOWN_ROUTE_REGEX.test(rawRoute) && lang === 'zh-CN' ? '未知' : rawRoute)
         : '-'
