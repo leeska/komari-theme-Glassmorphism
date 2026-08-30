@@ -2,7 +2,7 @@
 
 ## 当前任务（2026-08-30，TZA Probe / Glassmorphism 结构重构）
 
-- 状态：release_pending
+- 状态：published_to_forks，主题 v3.3.13 Release 已发布并完成线上资产复验
 - 里程碑：M4 UI/UX + M5 新领域工作流 + M6 验证
 - 设计决策：探测配置从通用设置迁移到独立 `/admin/probes` 探针中心；延迟与回程使用两套明确的选择集合和周期，地区、运营商、电信/联通/移动、IPv4/IPv6 可独立选择且默认为空；主题只读取并展示 Core 结果，不承担探测业务。
 - 交互结果：后台以执行策略、延迟监控和回程线路三个明确区域呈现状态、筛选和保存动作；主题节点卡片以固定高度摘要区分协议族与运营商，保留未监控/暂无结果/错误等状态。
@@ -14,8 +14,9 @@
 - 管理端：探针中心改为执行策略和延迟/回程双工作区；默认直接进入延迟目标，支持搜索、地区/运营商/IP 筛选、选择当前筛选结果，保存时一次写入完整配置。新增页面已覆盖简中、繁中、英语、日语和印尼语。
 - Core/Agent：回程结果排序改为最新优先；Agent 侧移除 Team Cymru 外部 ASN 查询，分类仅使用本地确定性规则，降低运行时外部依赖。
 - 静态资源：从 komari-web `83d9867debe789ca6f89f1868b050f7c0d0993f2` 重新构建并同步 `public/admin-app`；带数字后缀的本机未跟踪文件已备份后原样恢复，不纳入提交或 Release。
-- 已推送：Core `e2c6a8613f48831b4088336581a2eb55947cfaf0`；Agent `caedf6b547790cd14420241382bf09a87b2ff2fe`；komari-web `83d9867debe789ca6f89f1868b050f7c0d0993f2`。
-- 验证：Core `go test ./internal/probe ./database/tasks ./web/rpc/jsonrpc ./internal/server` 通过；Agent `go test ./server -run 'CarrierRoute|carrierRoute'` 通过；komari-web 翻译同步检查干净、lint 为 0 errors / 29 个既有 warnings、生产构建通过；主题 `bun run lint`、`bun run type-check` 通过，Playwright 19/19 通过。
+- 已推送：Core `e2c6a8613f48831b4088336581a2eb55947cfaf0`；Agent `caedf6b547790cd14420241382bf09a87b2ff2fe`；komari-web `83d9867debe789ca6f89f1868b050f7c0d0993f2`；主题 `56b127b73fdf3e6cc18277152508c088191466c8`。
+- 验证：Core `go test ./internal/probe ./database/tasks ./web/rpc/jsonrpc ./internal/server` 通过；Agent `go test ./server -run 'CarrierRoute|carrierRoute'` 通过；komari-web 翻译同步检查干净、lint 为 0 errors / 29 个既有 warnings、生产构建通过；主题 `bun run lint`、`bun run type-check`、`bun run build` 通过，Playwright 19/19 通过。
+- Release：`https://github.com/leeska/komari-theme-Glassmorphism/releases/tag/v3.3.13`；资产 `komari-theme-Glassmorphism-build-56b127b.zip`，SHA-256 `8a9db8f99eb256be70d3c27f738ffffe5e0c181e054e25afe28b6c77763b3a34`。已从 GitHub 重新下载，验证压缩数据、顶层目录、版本、内置后台来源、探针中心 chunk 及 service worker/本机数字后缀文件排除结果。
 
 ## 当前任务（2026-08-30，修正三网延迟与回程选择）
 
