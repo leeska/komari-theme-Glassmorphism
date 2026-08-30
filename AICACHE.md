@@ -2,12 +2,13 @@
 
 ## 当前任务（2026-08-31，监控中心任务化与脱敏 Trace 收尾）
 
-- 状态：implemented_locally，待分别提交 Core、Web、Agent、Theme fork。
+- 状态：published_to_forks，四个 fork 分支均已推送。
 - Core：新增 `carrier_route_tasks` 一次性迁移；回程任务按显式节点 UUID、独立周期和备用域名调度；公共选择项携带任务 ID/名称，避免同地区自定义目标折叠。
 - Agent：回程线路保留有序组合（如 `10099->4837`、`CMIN2->CMI`），Trace 跳点和错误文本在上传前脱敏；未识别线路显示 `Unknown`。
 - Web：监控中心统一承载延迟与回程任务；旧 `/admin/probes`、`/admin/ping` 跳转 `/admin/monitoring`；添加/编辑支持内置域名、自定义地址和多机器绑定，五种语言补齐任务文案。
 - Theme：节点卡片延迟/回程切换按钮扩大并阻止事件冒泡；回程按 IPv4/IPv6 分栏、三网固定顺序显示组合线路，点击行查看带线路标签和脱敏地址的 Trace；同地区多任务按任务 ID 独立展示。
 - 验证：Core 定向 Go 测试、Agent 回程测试、Core `go build`、Web `npm run lint/build`、Theme `bun run lint/build` 均通过；未在浏览器安装向导中提交管理员密码，因此真实后台登录态未变更。Core 未登录 `/admin/monitoring` 已确认跳转 `/install`。
+- 已推送：Core `8d4e0e5`、Agent `b9034cc`、Web `4c4fb38`、Theme `d2b551b`。
 
 ## 当前任务（2026-08-30，TZA Probe 独立产品重构）
 
