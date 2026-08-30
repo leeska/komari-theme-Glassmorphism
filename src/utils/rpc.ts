@@ -267,16 +267,21 @@ export interface CarrierRouteSelection {
   region: string
   carrier: CarrierRouteCarrier | string
   family: CarrierRouteFamily
+  task_id?: string
+  task_name?: string
 }
 
 /** Persisted result produced by a Komari-side carrier route probe. */
 export interface CarrierRouteResult {
   node_uuid?: string
+  target_id?: string
   family: CarrierRouteFamily
   carrier: CarrierRouteCarrier | string
   region?: string
   target?: string
   route?: string
+  route_path?: string[]
+  trace?: CarrierRouteTraceHop[]
   status: 'ok' | 'failed' | 'timeout' | 'unsupported' | string
   latency_ms?: number | null
   loss_percent?: number | null
@@ -284,6 +289,15 @@ export interface CarrierRouteResult {
   received?: number
   checked_at: string
   error?: string
+}
+
+export interface CarrierRouteTraceHop {
+  hop: number
+  address?: string
+  asn?: string
+  network?: string
+  rtt_ms?: number | null
+  timed_out?: boolean
 }
 
 export interface CarrierRouteStatsResponse {

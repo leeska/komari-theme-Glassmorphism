@@ -1,5 +1,5 @@
 import type { MaybeRefOrGetter } from 'vue'
-import type { CarrierRouteCarrier, CarrierRouteFamily } from '@/utils/rpc'
+import type { CarrierRouteCarrier, CarrierRouteFamily, CarrierRouteTraceHop } from '@/utils/rpc'
 import { computed } from 'vue'
 import { useNodeCarrierRouteStats } from '@/composables/useNodeCarrierRouteStats'
 import { useAppStore } from '@/stores/app'
@@ -10,6 +10,7 @@ export interface CarrierRouteDisplay {
   family: CarrierRouteFamily
   familyLabel: string
   region: string
+  taskName?: string
   carrier: CarrierRouteCarrier | string
   carrierLabel: string
   route: string
@@ -19,17 +20,19 @@ export interface CarrierRouteDisplay {
   monitored: boolean
   checkedAt: string
   tooltip: string
+  trace: CarrierRouteTraceHop[]
 }
 
 const FAMILIES: CarrierRouteFamily[] = ['ipv4', 'ipv6']
+const UNKNOWN_ROUTE_REGEX = /^(?:hidden|unknown)$/i
 const CARRIERS: Array<{ key: CarrierRouteCarrier, zh: string, en: string }> = [
   { key: 'telecom', zh: '电信', en: 'Telecom' },
   { key: 'unicom', zh: '联通', en: 'Unicom' },
   { key: 'mobile', zh: '移动', en: 'Mobile' },
 ]
 
-function selectionKey(family: CarrierRouteFamily, carrier: string, region: string): string {
-  return `${family}:${carrier}:${region.trim().toLocaleLowerCase()}`
+function selectionKey(family: CarrierRouteFamily, carrier: string, region: string, taskId?: string): string {
+  return `${family}:${carrier}:${region.trim().toLocaleLowerCase()}:${taskId || 'default'}`
 }
 
 function routeSort(left: CarrierRouteDisplay, right: CarrierRouteDisplay): number {
@@ -71,12 +74,14 @@ export function useNodeCarrierRouteDisplay(uuid: MaybeRefOrGetter<string>) {
       if (!definition)
         return items
       const region = target.region?.trim() || '全国'
-      const key = selectionKey(family, definition.key, region)
+      const taskName = 'task_name' in target && typeof target.task_name === 'string' ? target.task_name : undefined
+      const taskId = 'task_id' in target && typeof target.task_id === 'string' ? target.task_id : undefined
+      const key = selectionKey(family, definition.key, region, taskId)
       if (seen.has(key))
         return items
       seen.add(key)
       const result = results
-        .filter(item => item.family === family && item.carrier === definition.key && (item.region || '全国').trim().toLocaleLowerCase() === region.toLocaleLowerCase())
+        .filter(item => item.family === family && item.carrier === definition.key && (item.region || '全国').trim().toLocaleLowerCase() === region.toLocaleLowerCase() && (!taskId || item.target_id === taskId))
         .sort((left, right) => new Date(right.checked_at).getTime() - new Date(left.checked_at).getTime())[0]
       const monitored = routeStats.selectionsKnown.value
         ? routeStats.enabled.value !== false
@@ -85,7 +90,10 @@ export function useNodeCarrierRouteDisplay(uuid: MaybeRefOrGetter<string>) {
       const carrierText = lang === 'zh-CN' ? definition.zh : definition.en
       const latency = monitored && typeof result?.latency_ms === 'number' ? `${Math.round(result.latency_ms)} ms` : '-'
       const loss = monitored && typeof result?.loss_percent === 'number' ? `${result.loss_percent.toFixed(1)}%` : '-'
-      const route = monitored ? result?.route?.trim() || '-' : '-'
+      const rawRoute = result?.route_path?.length ? result.route_path.join(' -> ') : result?.route?.trim() || '-'
+      const route = monitored
+        ? (UNKNOWN_ROUTE_REGEX.test(rawRoute) && lang === 'zh-CN' ? '未知' : rawRoute)
+        : '-'
       const status = monitored
         ? result
           ? statusLabel(result.status, lang)
@@ -98,10 +106,11 @@ export function useNodeCarrierRouteDisplay(uuid: MaybeRefOrGetter<string>) {
           ? lang === 'zh-CN' ? `${familyLabel} ${region} ${carrierText}暂无回程结果` : `No ${familyLabel} ${region} ${carrierText} route result`
           : lang === 'zh-CN' ? `${familyLabel} ${region} ${carrierText}未加入监控` : `${familyLabel} ${region} ${carrierText} is not monitored`
       items.push({
-        key: `${family}-${definition.key}-${region}`,
+        key: `${family}-${definition.key}-${region}-${taskId || 'default'}`,
         family,
         familyLabel,
         region,
+        taskName,
         carrier: result?.carrier ?? definition.key,
         carrierLabel: carrierText,
         route,
@@ -111,6 +120,7 @@ export function useNodeCarrierRouteDisplay(uuid: MaybeRefOrGetter<string>) {
         monitored,
         checkedAt,
         tooltip,
+        trace: result?.trace ?? [],
       })
       return items
     }, []).sort(routeSort)

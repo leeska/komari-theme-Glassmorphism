@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { CarrierRouteDisplay } from '@/composables/useNodeCarrierRouteDisplay'
 import type { NodeData } from '@/stores/nodes'
 import { Icon } from '@iconify/vue'
 import { computed, ref, watch } from 'vue'
@@ -20,6 +21,7 @@ const appStore = useAppStore()
 const mode = ref<'latency' | 'route'>('latency')
 const { carrierDisplays } = useNodeCarrierPingDisplay(() => props.node.uuid, { enabled: () => props.pingEnabled })
 const { displays: routeDisplays, loading: routeLoading, error: routeError, lastCheckedAt, enabled: routeEnabled } = useNodeCarrierRouteDisplay(() => props.node.uuid)
+const traceRoute = ref<CarrierRouteDisplay | null>(null)
 
 const families = computed(() => (['ipv4', 'ipv6'] as const).map(family => ({
   family,
@@ -68,6 +70,7 @@ watch(routeAvailable, (available) => {
     :class="[summaryHeightClass, !props.node.online ? 'blur-xs opacity-50' : '']"
     :title="appStore.carrierDisplayRegion || undefined"
     :aria-label="`${props.node.name} ${panelLabel}`"
+    @click.stop
   >
     <header class="mb-1 flex items-center justify-between gap-2 text-[10px] leading-none">
       <span class="flex min-w-0 items-center gap-1 text-muted-foreground">
@@ -79,7 +82,7 @@ watch(routeAvailable, (available) => {
           type="button"
           role="tab"
           :aria-selected="mode === 'latency'"
-          class="rounded px-1.5 py-0.5 text-[9px] transition-colors"
+          class="min-h-7 min-w-14 rounded px-3 py-1 text-[10px] font-medium transition-colors"
           :class="mode === 'latency' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'"
           @click.stop="mode = 'latency'"
         >
@@ -89,7 +92,7 @@ watch(routeAvailable, (available) => {
           type="button"
           role="tab"
           :aria-selected="mode === 'route'"
-          class="rounded px-1.5 py-0.5 text-[9px] transition-colors"
+          class="min-h-7 min-w-14 rounded px-3 py-1 text-[10px] font-medium transition-colors"
           :class="mode === 'route' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'"
           @click.stop="mode = 'route'"
         >
@@ -133,15 +136,35 @@ watch(routeAvailable, (available) => {
           <span>{{ family.label }}</span><span class="text-[8px] font-normal text-muted-foreground/70">{{ routeUpdatedLabel }}</span>
         </div>
         <div v-if="family.routes.length" class="grid min-h-0 flex-1 gap-0.5 overflow-y-auto pr-0.5">
-          <div v-for="route in family.routes" :key="route.key" :data-carrier-route="route.key" class="flex min-w-0 items-center gap-1 text-[9px] leading-tight" :title="route.tooltip">
-            <span class="max-w-12 shrink-0 truncate text-muted-foreground" :title="route.region">{{ route.region }}</span>
+          <button v-for="route in family.routes" :key="route.key" type="button" :data-carrier-route="route.key" class="flex min-h-7 min-w-0 items-center gap-1 rounded px-1 text-left text-[9px] leading-tight transition-colors hover:bg-background/60" :title="route.tooltip" @click.stop="traceRoute = route">
+            <span class="max-w-24 shrink-0 truncate text-muted-foreground" :title="route.taskName || route.region">{{ route.taskName || route.region }}</span>
             <span class="w-6 shrink-0 text-muted-foreground">{{ route.carrierLabel }}</span>
             <span class="min-w-0 flex-1 truncate" :class="route.monitored && (route.status === '正常' || route.status === 'OK') ? 'text-success' : route.monitored ? 'text-warning' : 'text-muted-foreground/60'">{{ route.route }}</span>
             <span class="shrink-0 tabular-nums text-muted-foreground">{{ route.latency }} / {{ route.loss }}</span>
-          </div>
+          </button>
         </div>
         <div v-else class="text-[8px] text-muted-foreground/70">
           未配置该协议族的回程目标
+        </div>
+      </div>
+    </div>
+    <div v-if="traceRoute" class="absolute inset-0 z-30 flex items-center justify-center bg-background/85 p-2 backdrop-blur-sm" @click.stop="traceRoute = null">
+      <div class="flex max-h-full w-full min-w-0 flex-col rounded-lg border border-border bg-background p-2 shadow-lg" @click.stop>
+        <div class="mb-2 flex items-center justify-between gap-2 text-[10px] font-medium">
+          <span class="truncate">{{ traceRoute.familyLabel }} · {{ traceRoute.region }} · {{ traceRoute.carrierLabel }} · {{ traceRoute.route }}</span><button type="button" class="min-h-7 rounded px-2 text-muted-foreground hover:bg-muted" @click="traceRoute = null">
+            关闭
+          </button>
+        </div>
+        <div v-if="traceRoute.trace.length" class="min-h-0 flex-1 overflow-y-auto text-[9px]">
+          <div class="mb-1 grid grid-cols-[2rem_minmax(0,1fr)_auto_auto_auto] gap-1 px-1.5 text-[8px] text-muted-foreground">
+            <span>#</span><span>地址（已脱敏）</span><span>线路</span><span>ASN</span><span>RTT</span>
+          </div>
+          <div v-for="hop in traceRoute.trace" :key="hop.hop" class="grid grid-cols-[2rem_minmax(0,1fr)_auto_auto_auto] items-center gap-1 rounded bg-muted/40 px-1.5 py-1">
+            <span class="tabular-nums text-muted-foreground">{{ hop.hop }}</span><span class="truncate font-mono">{{ hop.timed_out ? '*' : hop.address || '*' }}</span><span class="text-muted-foreground">{{ hop.network || '' }}</span><span class="text-muted-foreground">{{ hop.asn || '' }}</span><span class="tabular-nums text-muted-foreground">{{ typeof hop.rtt_ms === 'number' ? `${Math.round(hop.rtt_ms)} ms` : '' }}</span>
+          </div>
+        </div>
+        <div v-else class="py-5 text-center text-[9px] text-muted-foreground">
+          暂无可显示的 Trace
         </div>
       </div>
     </div>

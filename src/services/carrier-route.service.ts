@@ -1,4 +1,4 @@
-import type { CarrierRouteCarrier, CarrierRouteFamily, CarrierRouteResult, CarrierRouteSelection } from '@/utils/rpc'
+import type { CarrierRouteCarrier, CarrierRouteFamily, CarrierRouteResult, CarrierRouteSelection, CarrierRouteTraceHop } from '@/utils/rpc'
 import { requestManager } from '@/services/request.service'
 import { getSharedRpc, RpcError } from '@/utils/rpc'
 
@@ -70,13 +70,37 @@ function normalizeResult(raw: unknown, fallbackCheckedAt: string, uuid: string):
   const carrier = normalizeCarrier(item.carrier ?? item.isp ?? item.operator ?? item.network)
   const latency = finiteOrNull(item.latency_ms ?? item.latency ?? item.avg_latency)
   const loss = finiteOrNull(item.loss_percent ?? item.loss ?? item.packet_loss)
+  const routePath = Array.isArray(item.route_path)
+    ? item.route_path.filter((value): value is string => typeof value === 'string' && value.trim().length > 0).map(value => value.trim())
+    : undefined
+  const trace = Array.isArray(item.trace)
+    ? item.trace.map((hop): CarrierRouteTraceHop | null => {
+        if (!hop || typeof hop !== 'object')
+          return null
+        const value = hop as Record<string, unknown>
+        const number = typeof value.hop === 'number' && Number.isFinite(value.hop) ? value.hop : 0
+        if (!number)
+          return null
+        return {
+          hop: number,
+          address: typeof value.address === 'string' ? value.address : undefined,
+          asn: typeof value.asn === 'string' ? value.asn : undefined,
+          network: typeof value.network === 'string' ? value.network : undefined,
+          rtt_ms: finiteOrNull(value.rtt_ms),
+          timed_out: value.timed_out === true,
+        }
+      }).filter((value): value is CarrierRouteTraceHop => Boolean(value))
+    : undefined
   return {
     node_uuid: typeof item.node_uuid === 'string' ? item.node_uuid : uuid,
+    target_id: typeof item.target_id === 'string' ? item.target_id : undefined,
     family,
     carrier,
     region: typeof item.region === 'string' ? item.region : undefined,
     target: typeof item.target === 'string' ? item.target : typeof item.host === 'string' ? item.host : undefined,
     route: typeof item.route === 'string' ? item.route : typeof item.label === 'string' ? item.label : undefined,
+    route_path: routePath,
+    trace,
     status: normalizeStatus(item.status),
     latency_ms: latency,
     loss_percent: loss,
@@ -134,9 +158,16 @@ export async function loadCarrierRouteStats(query: CarrierRouteQuery): Promise<C
           const family = normalizeFamily(selection.family ?? selection.ip_version ?? selection.ipVersion)
           const carrier = normalizeCarrier(selection.carrier ?? selection.isp ?? selection.operator)
           const region = typeof selection.region === 'string' ? selection.region.trim() : ''
-          return family && carrier && region
-            ? { region, carrier, family }
-            : null
+          const taskId = typeof selection.task_id === 'string' ? selection.task_id.trim() : undefined
+          const taskName = typeof selection.task_name === 'string' ? selection.task_name.trim() : undefined
+          if (!family || !carrier || !region)
+            return null
+          const normalized: CarrierRouteSelection = { region, carrier, family }
+          if (taskId)
+            normalized.task_id = taskId
+          if (taskName)
+            normalized.task_name = taskName
+          return normalized
         })
         .filter((item): item is CarrierRouteSelection => Boolean(item))
       return {
