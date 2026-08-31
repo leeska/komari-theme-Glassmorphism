@@ -4,7 +4,8 @@
 
 - 状态：completed_and_published
 - 目标：拉取并确认最新 Core/Agent/Web 基线，移除旧 Komari fork 分支，让 TZA 代码从各自独立仓库的 `main` 开始维护。
-- 独立仓库：`leeska/TZA-Probe` `main`=`e093356`，`leeska/TZA-Probe-Agent` `main`=`724c5b7`，`leeska/komari-web` `main`=`a5d1ae0`；三者 GitHub API 均确认 `isFork=false`、`parent=null`，远端只保留 `main`。
+- 独立仓库：`leeska/TZA-Probe` `main`=`11397ca`，`leeska/TZA-Probe-Agent` `main`=`724c5b7`，`leeska/TZA-Web` `main`=`b3dd567`；三者 GitHub API 均确认 `isFork=false`、`parent=null`，远端只保留 `main`。
+- Web 仓库已从 `leeska/komari-web` 重命名为 `leeska/TZA-Web`；本地 checkout 为 `/Users/Apple/Documents/Codex/2026-08-29/leeska-tza-web`，Core 的前端构建 action、release notes 查询与产品文档均已切换到新地址。
 - 主题：最新 TZA Glassmorphism 提交 `91bba9e` 已快进到 `leeska/komari-theme-Glassmorphism:main`；保留现有 `v3.3.14` Release 和资产，删除旧 `codex/*` 与 `release/*` 远端分支。主题仓库仍是 Komari 主题兼容 fork，未删除仓库或历史 Release。
 - Core：从 Web 最新生产构建同步 `dist/`、`komari-theme.json`、`preview.png` 到忽略的 `web/public/defaultTheme/`；Web/Core `dist/index.html` SHA-256 均为 `1323c6ac07e24d326caca3eafddb9dde4ca1164367aa8ff9cbb72b7a103a46d0`。
 - 清理：Agent 生成的 47 个带 ` 2` 后缀重复文件均与原文件字节一致，已移入 `/tmp/tza-agent-macos-duplicates.QhOD1z`；旧 Git 历史 bundle 仍保存在 `/tmp/tza-probe-pre-independent.bundle`、`/tmp/tza-probe-agent-pre-independent.bundle`、`/tmp/tza-probe-web-pre-independent.bundle`。
