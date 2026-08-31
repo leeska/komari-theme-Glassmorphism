@@ -108,7 +108,7 @@ test('node cards show optional structured carrier route results', async ({ page 
   await expect(panel).toBeVisible()
   await expect(panel.locator('[data-carrier-route-family="ipv4"] [data-carrier-route]')).toHaveCount(3)
   await expect(panel.locator('[data-carrier-route-family="ipv6"] [data-carrier-route]')).toHaveCount(3)
-  await expect(panel).toContainText('CN2')
+  await expect(panel).toContainText('CN2GIA')
   await expect(panel).toContainText('CMIN2->CMI')
 })
 

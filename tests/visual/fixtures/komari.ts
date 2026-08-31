@@ -375,7 +375,7 @@ async function handleRpc(route: Route, clientFixtures = clients, options: Visual
               ...['telecom', 'unicom', 'mobile'].map(carrier => ({ region: '广东', carrier, family: 'ipv6' })),
             ],
             results: [
-              { node_uuid: uuid, region: '广东', family: 'ipv4', carrier: 'telecom', route: 'CN2', status: 'ok', latency_ms: 42, loss_percent: 0, sent: 3, received: 3, checked_at: FIXED_NOW },
+              { node_uuid: uuid, region: '广东', family: 'ipv4', carrier: 'telecom', route: 'CN2GIA', status: 'ok', latency_ms: 42, loss_percent: 0, sent: 3, received: 3, checked_at: FIXED_NOW },
               { node_uuid: uuid, region: '广东', family: 'ipv4', carrier: 'unicom', route: '4837', status: 'ok', latency_ms: 55, loss_percent: 0, sent: 3, received: 3, checked_at: FIXED_NOW },
               { node_uuid: uuid, region: '广东', family: 'ipv4', carrier: 'mobile', route: 'CMI', status: 'timeout', latency_ms: null, loss_percent: 100, sent: 3, received: 0, checked_at: FIXED_NOW },
               { node_uuid: uuid, region: '广东', family: 'ipv6', carrier: 'telecom', route: '163', status: 'ok', latency_ms: 48, loss_percent: 0, sent: 3, received: 3, checked_at: FIXED_NOW },

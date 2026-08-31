@@ -1,5 +1,13 @@
 # AI Cache / Agent Handoff Log
 
+## 当前任务（2026-08-31，部署链路复核）
+
+- 状态：implemented_and_verified，待合并/发布 Core、Agent 和 Theme 功能分支。
+- 根因：三个仓库 `main` 尚未包含完整三网延迟/回程链路；功能分别在 Core/Agent `feature/carrier-route` 和 Theme `codex/ipv4-ipv6-carrier-route`。后台监控中心由独立 TZA Probe Web `radix` 分支构建，不属于 Glassmorphism 主题。
+- 新发现：Agent 回程实现依赖 `traceroute`，但 Linux 安装器只安装 `curl`，Alpine Docker 镜像也未包含该命令，会使标准部署全部返回 `unsupported`。Agent 工作区已修复安装器、Dockerfile 和文档。
+- 前台验证：回程 fixture 和浏览器断言改为精确 `CN2GIA`；三网顺序、地区筛选、IPv4/IPv6 拆分和结构化回程共 4 条 Playwright 用例通过。
+- 验证：Core 定向 Go 测试通过；Agent `bash -n`、回程专项测试和 `go build ./...` 通过；Theme lint、type-check、build 和回程浏览器用例通过。Core 全量测试只剩工作区权限/未嵌入默认前端 fixture 失败；Agent 全量测试只剩沙箱 ICMP/raw socket 和外网目标失败。
+
 ## 当前任务（2026-08-31，监控中心任务化与脱敏 Trace 收尾）
 
 - 状态：published_to_forks，四个 fork 分支均已推送。
