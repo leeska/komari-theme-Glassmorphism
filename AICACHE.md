@@ -2,12 +2,15 @@
 
 ## 当前任务（2026-09-01，监控摘要与任务排序）
 
-- 状态：implemented_and_verified，待推送 TZA-Web 与主题并复验 v3.3.15 Release。
+- 状态：completed_and_published。
 - 主题：节点卡片三网摘要改为稳定的运营商 / IPv4 / IPv6 三列，增加固定高度并去掉重复空状态；回程区域只显示线路类型与 Trace，不再混入延迟或丢包；日期格式修正为 `MM-DD`。
 - Web：监控中心表格增加拖拽排序；延迟通过 `admin:orderPingTask` 持久化权重，回程通过 `admin:setCarrierRouteTasks` 持久化数组顺序；排序失败会恢复原列表。固定列宽、横向滚动和操作列空间同时解决名称列错位及按钮重叠。
 - Core：Web 生产构建已同步到忽略目录 `web/public/defaultTheme/`；Web/Core `dist/index.html` SHA-256 均为 `e88acb48ca35a3b3587fbe97695c3474b0028bd795df1e75b70630caa1adb5ad`。
 - 验证：主题 `bun run lint`、`bun run type-check`、`bun run build` 通过；三网顺序、地区筛选、IPv4/IPv6 分离、结构化回程 4 条 Playwright 用例通过。Web lint 为 0 errors / 29 个既有 warnings，i18n dry sync 和 build 通过。Core `go test ./web/public ./web/api/admin ./web/rpc/jsonrpc` 与 `go build ./...` 通过。
 - 工作区保护：原有未跟踪 `public/admin-app/` 保持未改动且不纳入主题提交或 Release。
+- 已推送：TZA-Web `4939ac7` -> `leeska/TZA-Web:main`；主题 `7e39ccd` -> `leeska/komari-theme-Glassmorphism:main`。
+- 主题 Release：`https://github.com/leeska/komari-theme-Glassmorphism/releases/tag/v3.3.15`；资产 `komari-theme-Glassmorphism-build-7e39ccd.zip`（5,141,704 bytes），SHA-256 `4556bcd4604fe6f67433f240b0e4b7b2a6e44892ba9fc297881e227d2c93ba2c`。已从 GitHub 下载复验 ZIP 完整性、版本 `3.3.15`，并确认不含 `admin-app` 或 Service Worker 文件。
+- Core Snapshot：运行 `33423292215` 成功，发布 `https://github.com/leeska/TZA-Probe/releases/tag/Snapshot-2609010207`；前端、多架构二进制和容器镜像构建/发布均成功，目标提交为 `11397ca`。
 
 ## 当前任务（2026-08-31，TZA 独立仓库收尾）
 
