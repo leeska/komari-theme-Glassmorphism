@@ -1,5 +1,18 @@
 # AI Cache / Agent Handoff Log
 
+## 当前任务（2026-08-31，TZA 独立仓库收尾）
+
+- 状态：completed_and_published
+- 目标：拉取并确认最新 Core/Agent/Web 基线，移除旧 Komari fork 分支，让 TZA 代码从各自独立仓库的 `main` 开始维护。
+- 独立仓库：`leeska/TZA-Probe` `main`=`e093356`，`leeska/TZA-Probe-Agent` `main`=`724c5b7`，`leeska/komari-web` `main`=`a500e70`；三者 GitHub API 均确认 `isFork=false`、`parent=null`，远端只保留 `main`。
+- 主题：最新 TZA Glassmorphism 提交 `91bba9e` 已快进到 `leeska/komari-theme-Glassmorphism:main`；保留现有 `v3.3.14` Release 和资产，删除旧 `codex/*` 与 `release/*` 远端分支。主题仓库仍是 Komari 主题兼容 fork，未删除仓库或历史 Release。
+- Core：从 Web 最新生产构建同步 `dist/`、`komari-theme.json`、`preview.png` 到忽略的 `web/public/defaultTheme/`；Web/Core `dist/index.html` SHA-256 均为 `1323c6ac07e24d326caca3eafddb9dde4ca1164367aa8ff9cbb72b7a103a46d0`。
+- 清理：Agent 生成的 47 个带 ` 2` 后缀重复文件均与原文件字节一致，已移入 `/tmp/tza-agent-macos-duplicates.QhOD1z`；旧 Git 历史 bundle 仍保存在 `/tmp/tza-probe-pre-independent.bundle`、`/tmp/tza-probe-agent-pre-independent.bundle`、`/tmp/tza-probe-web-pre-independent.bundle`。
+- 验证：Core `go test ./internal/probe ./database/tasks ./web/rpc/jsonrpc ./internal/server`、`go test ./web/public ./web/api/admin ./web/rpc/jsonrpc`、`go build ./...` 通过；Agent 回程、`protocol/v2`、`update` 测试和 `go build ./...` 通过；Web `npm run lint -- --no-fix`（0 errors / 29 个既有 warnings）、`npm run i18n:sync:dry`、`npm run build` 通过。
+- Actions：Core `e093356` 的 Generate Release Notes/Publish Snapshot 成功；Agent `724c5b7` 的 Build on Main/Publish Snapshot 成功；Web `a500e70` 的 i18n sync 成功。Core 之前 `56f1027` 的失败运行属于重建过程中的旧提交。
+- 本地状态：三个 TZA 仓库只剩 `main` 和 `origin` 用户仓库远端；主题只保留 `main`、`origin`（上游主题）和 `fork`（用户主题）远端，工作区既有未跟踪 `public/admin-app/` 未改动。
+- 兼容边界：Go module path、协议和数据库兼容层保持原值；不要擅自全局替换为 `github.com/leeska/...`。
+
 ## 当前任务（2026-08-31，部署链路复核）
 
 - 状态：implemented_and_verified，待合并/发布 Core、Agent 和 Theme 功能分支。
