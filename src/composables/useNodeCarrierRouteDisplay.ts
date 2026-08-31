@@ -14,8 +14,6 @@ export interface CarrierRouteDisplay {
   carrier: CarrierRouteCarrier | string
   carrierLabel: string
   route: string
-  latency: string
-  loss: string
   status: string
   monitored: boolean
   checkedAt: string
@@ -88,8 +86,6 @@ export function useNodeCarrierRouteDisplay(uuid: MaybeRefOrGetter<string>) {
         : Boolean(result)
       const familyLabel = family === 'ipv4' ? 'IPv4' : 'IPv6'
       const carrierText = lang === 'zh-CN' ? definition.zh : definition.en
-      const latency = monitored && typeof result?.latency_ms === 'number' ? `${Math.round(result.latency_ms)} ms` : '-'
-      const loss = monitored && typeof result?.loss_percent === 'number' ? `${result.loss_percent.toFixed(1)}%` : '-'
       const rawRoute = result?.route_path?.length ? result.route_path.join('->') : result?.route?.trim() || '-'
       const route = monitored
         ? (UNKNOWN_ROUTE_REGEX.test(rawRoute) && lang === 'zh-CN' ? '未知' : rawRoute)
@@ -99,7 +95,7 @@ export function useNodeCarrierRouteDisplay(uuid: MaybeRefOrGetter<string>) {
           ? statusLabel(result.status, lang)
           : lang === 'zh-CN' ? '暂无结果' : 'No result'
         : lang === 'zh-CN' ? '未监控' : 'Not monitored'
-      const checkedAt = result?.checked_at ? formatDateTime(result.checked_at, 'MM-dd HH:mm') : '-'
+      const checkedAt = result?.checked_at ? formatDateTime(result.checked_at, 'MM-DD HH:mm') : '-'
       const tooltip = result
         ? `${familyLabel} ${region} ${carrierText}\n${route}\n${status}\n${checkedAt}`
         : monitored
@@ -114,8 +110,6 @@ export function useNodeCarrierRouteDisplay(uuid: MaybeRefOrGetter<string>) {
         carrier: result?.carrier ?? definition.key,
         carrierLabel: carrierText,
         route,
-        latency,
-        loss,
         status,
         monitored,
         checkedAt,

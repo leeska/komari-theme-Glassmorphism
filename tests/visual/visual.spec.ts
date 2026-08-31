@@ -110,6 +110,8 @@ test('node cards show optional structured carrier route results', async ({ page 
   await expect(panel.locator('[data-carrier-route-family="ipv6"] [data-carrier-route]')).toHaveCount(3)
   await expect(panel).toContainText('CN2GIA')
   await expect(panel).toContainText('CMIN2->CMI')
+  await expect(panel).not.toContainText('42 ms')
+  await expect(panel).not.toContainText('0.0%')
 })
 
 test('home dark mobile', async ({ page }) => {
