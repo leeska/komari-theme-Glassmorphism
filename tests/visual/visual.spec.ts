@@ -114,6 +114,27 @@ test('node cards show optional structured carrier route results', async ({ page 
   await expect(panel).not.toContainText('0.0%')
 })
 
+test('carrier route trace opens as one complete non-paginated panel', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 })
+  await installKomariFixture(page, { carrierRouteEnabled: true, hideEarth: true })
+  await openStablePage(page)
+
+  const card = page.getByRole('button', { name: '查看节点 主控-洛杉矶 详情' })
+  await card.getByRole('tab', { name: '回程' }).click()
+  await card.locator('[data-carrier-route="ipv4-telecom-广东-default"]').click()
+
+  const overlay = page.locator('[data-carrier-trace-overlay]')
+  const tracePanel = overlay.locator('[data-carrier-trace-panel]')
+  await expect(overlay).toBeVisible()
+  await expect(tracePanel).toBeVisible()
+  await expect(tracePanel.locator('[data-carrier-trace-hop]')).toHaveCount(3)
+  await expect(tracePanel).toContainText('CN2GIA')
+  await expect(tracePanel).toContainText('10.0.*.*')
+  await expect(tracePanel).toContainText('202.97.*.*')
+  await expect(tracePanel.locator('button', { hasText: '上一页' })).toHaveCount(0)
+  await expect(tracePanel.locator('button', { hasText: '下一页' })).toHaveCount(0)
+})
+
 test('home dark mobile', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await installKomariFixture(page, { dark: true })

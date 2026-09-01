@@ -1,5 +1,15 @@
 # AI Cache / Agent Handoff Log
 
+## 当前任务（2026-09-01，NextTrace 与完整回程视图）
+
+- 状态：implemented_and_verified，待提交、推送并发布 v3.3.16。
+- Agent：回程探测优先使用固定版本 NextTrace v1.7.3，TCP 不可用时尝试 UDP，NextTrace 缺失或失败时降级 traceroute；安装脚本和 Linux amd64/arm64 Docker 镜像同步内置 NextTrace。
+- 线路识别：解析 NextTrace `--raw` 的每跳 ASN；`AS58807` 明确识别为 `CMIN2`，`AS58453` / `AS9808` 识别为 `CMI`，线路组合继续按跳序显示为 `CMIN2->CMI` 等形式。公开 Trace 保留 ASN 与线路标签，地址继续脱敏。
+- 主题：节点卡片三网摘要、延迟/丢包数值、协议标签、回程行和线路标签整体放大；长任务名允许换行；Trace 改为固定屏幕级大浮层，全部跳点一次显示且不分页，仅在屏幕高度不足时滚动。虚拟节点卡片占位高度已随摘要尺寸上调。
+- 回归：新增稳定 Trace 浮层选择器和三跳 fixture，断言点击线路后大浮层可见、全部 hop 存在、脱敏地址可见且无上一页/下一页控件。
+- 验证：Agent `bash -n install.sh`、`go test ./server -run 'CarrierRoute|Nexttrace'`、`go test ./protocol/v2`、`go build ./...`、`git diff --check` 通过；NextTrace v1.7.3 实际帮助信息确认所有受限参数存在，源码确认普通 `--raw` 使用 12 列 `ttl|ip|ptr|rtt|asn|...` 契约。主题 `bun run lint`、`bun run type-check`、`bun run build`、Playwright 20/20 和 `git diff --check` 通过；构建仅有既有大 chunk 警告。
+- 工作区保护：原有未跟踪 `public/admin-app/` 保持未改动，不纳入提交或 Release。
+
 ## 当前任务（2026-09-01，监控摘要与任务排序）
 
 - 状态：completed_and_published。

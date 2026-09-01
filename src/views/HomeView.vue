@@ -265,7 +265,9 @@ const isDenseNodeGrid = computed(() => appStore.nodeViewMode === 'card' && nodeL
 const enableNodeCardTransition = computed(() => !appStore.disablePageAnimation && !isDenseNodeGrid.value)
 const reduceDenseNodeEffects = computed(() => appStore.nodeViewMode === 'card' && nodeList.value.length > denseNodePingAnimationThreshold)
 const deferNodeCards = computed(() => appStore.nodeViewMode === 'card' && nodeList.value.length > UI_CONFIG.virtualList.nodeThreshold)
-const deferredNodeCardHeight = computed(() => ({ mini: 220, compact: 270, comfortable: 310, large: 350 }[appStore.nodeCardSize]))
+// Keep suspended card placeholders taller than the expanded network summary.
+// This prevents the virtual grid from shifting when a deferred NodeCard mounts.
+const deferredNodeCardHeight = computed(() => ({ mini: 252, compact: 304, comfortable: 352, large: 400 }[appStore.nodeCardSize]))
 
 const quickControlCounts = computed<Record<HomeQuickControlKey, number>>(() => {
   let base = groupNodeList.value
