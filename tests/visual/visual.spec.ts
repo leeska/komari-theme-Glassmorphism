@@ -108,6 +108,18 @@ test('node cards show optional structured carrier route results', async ({ page 
   await expect(panel).toBeVisible()
   await expect(panel.locator('[data-carrier-route-family="ipv4"] [data-carrier-route]')).toHaveCount(3)
   await expect(panel.locator('[data-carrier-route-family="ipv6"] [data-carrier-route]')).toHaveCount(3)
+  const routeRows = await panel.locator('[data-carrier-route]').all()
+  for (const routeRow of routeRows) {
+    await expect(routeRow).toBeVisible()
+    const routeLabel = routeRow.locator('[data-carrier-route-label]')
+    await expect(routeLabel).toBeVisible()
+    await expect.poll(async () => routeLabel.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
+    await expect.poll(async () => routeRow.evaluate((element) => {
+      const row = element.getBoundingClientRect()
+      const bounds = element.closest('[data-node-network-probe]')?.getBoundingClientRect()
+      return Boolean(bounds && row.top >= bounds.top && row.bottom <= bounds.bottom)
+    })).toBe(true)
+  }
   await expect(panel).toContainText('CN2GIA')
   await expect(panel).toContainText('CMIN2->CMI')
   await expect(panel).not.toContainText('42 ms')
