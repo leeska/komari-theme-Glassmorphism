@@ -2,13 +2,16 @@
 
 ## 当前任务（2026-09-01，NextTrace 与完整回程视图）
 
-- 状态：implemented_and_verified，待提交、推送并发布 v3.3.16。
+- 状态：completed_and_published。
 - Agent：回程探测优先使用固定版本 NextTrace v1.7.3，TCP 不可用时尝试 UDP，NextTrace 缺失或失败时降级 traceroute；安装脚本和 Linux amd64/arm64 Docker 镜像同步内置 NextTrace。
 - 线路识别：解析 NextTrace `--raw` 的每跳 ASN；`AS58807` 明确识别为 `CMIN2`，`AS58453` / `AS9808` 识别为 `CMI`，线路组合继续按跳序显示为 `CMIN2->CMI` 等形式。公开 Trace 保留 ASN 与线路标签，地址继续脱敏。
-- 主题：节点卡片三网摘要、延迟/丢包数值、协议标签、回程行和线路标签整体放大；长任务名允许换行；Trace 改为固定屏幕级大浮层，全部跳点一次显示且不分页，仅在屏幕高度不足时滚动。虚拟节点卡片占位高度已随摘要尺寸上调。
-- 回归：新增稳定 Trace 浮层选择器和三跳 fixture，断言点击线路后大浮层可见、全部 hop 存在、脱敏地址可见且无上一页/下一页控件。
+- 主题：节点卡片三网摘要、延迟/丢包数值、协议标签、回程行和线路标签整体放大；长任务名允许换行；六条 IPv4/IPv6 回程线路按内容自然增高并直接展开，组合线路独占一行，不再内部分页或滚动；Trace 改为固定屏幕级大浮层，全部跳点一次显示且不分页，仅在屏幕高度不足时滚动。虚拟节点卡片占位高度已随摘要尺寸上调。
+- 回归：新增稳定 Trace 浮层选择器和三跳 fixture，断言全部回程行位于摘要可视边界内、线路标签无横向溢出；点击线路后大浮层可见、全部 hop 存在、脱敏地址可见且无上一页/下一页控件。
 - 验证：Agent `bash -n install.sh`、`go test ./server -run 'CarrierRoute|Nexttrace'`、`go test ./protocol/v2`、`go build ./...`、`git diff --check` 通过；NextTrace v1.7.3 实际帮助信息确认所有受限参数存在，源码确认普通 `--raw` 使用 12 列 `ttl|ip|ptr|rtt|asn|...` 契约。主题 `bun run lint`、`bun run type-check`、`bun run build`、Playwright 20/20 和 `git diff --check` 通过；构建仅有既有大 chunk 警告。
 - 工作区保护：原有未跟踪 `public/admin-app/` 保持未改动，不纳入提交或 Release。
+- 视觉核验：Playwright fixture 在 1280x720 与 390x844 实际截图通过；移动回程面板 `scrollWidth === clientWidth`，页面 `scrollWidth === clientWidth`，六条线路、长组合标签和浮层均完整显示且无重叠。
+- 已推送：Agent `88e407a` -> `leeska/TZA-Probe-Agent:main`；主题功能 `27820d0` + 可视边界修正 `f2c3f9b` -> `leeska/komari-theme-Glassmorphism:main`。Agent Build on Main `33495358221` 与 Publish Snapshot `33495358213` 均成功，Snapshot 为 `Snapshot-2609011002`。
+- 主题 Release：`https://github.com/leeska/komari-theme-Glassmorphism/releases/tag/v3.3.16`；tag 指向 `f2c3f9b`，最终资产 `komari-theme-Glassmorphism-build-f2c3f9b.zip`（5,141,970 bytes），SHA-256 `166fb46dceda68256bb4b0389dd8b8736ea663ed229eaca7ba4562de44900057`。已从 GitHub 下载复验 ZIP 完整性、版本 `3.3.16`、标准顶层结构，并确认不含 `admin-app` 或 Service Worker 文件；视觉检查前的零下载旧资产已删除。
 
 ## 当前任务（2026-09-01，监控摘要与任务排序）
 
