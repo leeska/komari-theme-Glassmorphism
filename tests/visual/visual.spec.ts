@@ -103,7 +103,10 @@ test('node cards show optional structured carrier route results', async ({ page 
   await openStablePage(page)
 
   const card = page.getByRole('button', { name: '查看节点 主控-洛杉矶 详情' })
+  const probe = card.locator('[data-node-network-probe]')
+  const latencyHeight = await probe.evaluate(element => element.getBoundingClientRect().height)
   await card.getByRole('tab', { name: '回程' }).click()
+  await expect.poll(() => probe.evaluate(element => element.getBoundingClientRect().height)).toBe(latencyHeight)
   const panel = card.locator('[data-node-carrier-route]')
   await expect(panel).toBeVisible()
   await expect(panel.locator('[data-carrier-route-family="ipv4"] [data-carrier-route]')).toHaveCount(3)
@@ -120,6 +123,8 @@ test('node cards show optional structured carrier route results', async ({ page 
       return Boolean(bounds && row.top >= bounds.top && row.bottom <= bounds.bottom)
     })).toBe(true)
   }
+  const labelHeights = await panel.locator('[data-carrier-route-label]').evaluateAll(elements => elements.map(element => element.getBoundingClientRect().height))
+  expect(new Set(labelHeights)).toEqual(new Set([28]))
   await expect(panel).toContainText('CN2GIA')
   await expect(panel).toContainText('CMIN2->CMI')
   await expect(panel).not.toContainText('42 ms')
@@ -133,7 +138,9 @@ test('carrier route trace opens as one complete non-paginated panel', async ({ p
 
   const card = page.getByRole('button', { name: '查看节点 主控-洛杉矶 详情' })
   await card.getByRole('tab', { name: '回程' }).click()
-  await card.locator('[data-carrier-route="ipv4-telecom-广东-default"]').click()
+  const routeRow = card.locator('[data-carrier-route="ipv4-telecom-广东-default"]')
+  await routeRow.scrollIntoViewIfNeeded()
+  await routeRow.click()
 
   const overlay = page.locator('[data-carrier-trace-overlay]')
   const tracePanel = overlay.locator('[data-carrier-trace-panel]')
@@ -145,6 +152,41 @@ test('carrier route trace opens as one complete non-paginated panel', async ({ p
   await expect(tracePanel).toContainText('202.97.*.*')
   await expect(tracePanel.locator('button', { hasText: '上一页' })).toHaveCount(0)
   await expect(tracePanel.locator('button', { hasText: '下一页' })).toHaveCount(0)
+  await expect.poll(async () => {
+    const rowBounds = await routeRow.boundingBox()
+    const panelBounds = await tracePanel.boundingBox()
+    if (!rowBounds || !panelBounds)
+      return false
+    const rowCenter = rowBounds.y + rowBounds.height / 2
+    const panelCenter = panelBounds.y + panelBounds.height / 2
+    return Math.abs(panelCenter - rowCenter) < 360
+      && panelBounds.y >= 8
+      && panelBounds.y + panelBounds.height <= 712
+  }).toBe(true)
+})
+
+test('mini node cards keep all carrier families readable without overflow', async ({ page }) => {
+  await page.setViewportSize({ width: 900, height: 900 })
+  await installKomariFixture(page, {
+    carrierPingIpv6: true,
+    carrierRouteEnabled: true,
+    hideEarth: true,
+    nodeCardSize: 'mini',
+    pingTaskOrdering: true,
+  })
+  await openStablePage(page)
+
+  const card = page.getByRole('button', { name: '查看节点 主控-洛杉矶 详情' })
+  const probe = card.locator('[data-node-network-probe]')
+  await expect(probe.locator('[data-carrier-ping]')).toHaveCount(3)
+  await expect(probe.locator('[data-node-ping-family="ipv4"]')).toHaveCount(3)
+  await expect(probe.locator('[data-node-ping-family="ipv6"]')).toHaveCount(3)
+  await expect.poll(() => probe.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
+
+  await card.getByRole('tab', { name: '回程' }).click()
+  await expect(probe.locator('[data-carrier-route]')).toHaveCount(6)
+  await expect(probe).toContainText('CMIN2->CMI')
+  await expect.poll(() => probe.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
 })
 
 test('home dark mobile', async ({ page }) => {
@@ -338,7 +380,7 @@ test('detail ping requests stay scoped to the current node', async ({ page }) =>
   expect(homeSummaryCalls.every(call => call.params.max_points === 150)).toBe(true)
 
   metricCalls.length = 0
-  await page.getByRole('button', { name: '查看节点 主控-洛杉矶 详情' }).click()
+  await page.getByRole('button', { name: '查看节点 主控-洛杉矶 详情' }).click({ position: { x: 120, y: 24 } })
   await expect(page).toHaveURL(`/instance/${currentUuid}`)
   await expect(page.getByText('硬件信息')).toBeVisible()
   await page.waitForTimeout(2_000)

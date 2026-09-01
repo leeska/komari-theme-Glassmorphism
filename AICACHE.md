@@ -766,3 +766,11 @@
 - Implemented 7 deterministic Playwright baselines: light desktop home, dark mobile home, accessible desktop list, Cobe and tiled earth layouts, light desktop detail and dark mobile detail. All use mocked Komari API/RPC/visitor data, fixed time, disabled animations and hidden dynamic 3D canvas pixels while retaining globe layout boundaries.
 - First baseline generation and repeated comparison both passed 7/7 with system Chrome. Windows system-channel Chrome did not exit cleanly after reporting results, so release validation does not treat that local channel teardown as a product failure; CI installs and runs Playwright's managed Chromium.
 - Added the independent `Visual Regression` workflow for pull requests and `main`, with actual/diff/HTML report artifacts retained for 14 days on failure. Release target is v3.3.0.
+
+## 2026-09-01 v3.3.17 monitoring layout and settings cleanup
+
+- The latency and return-route views now share a fixed 18rem panel height across every node-card density. Return-route rows and labels have stable dimensions, while `mini` cards use narrower carrier/control columns so IPv4 and IPv6 remain readable without horizontal compression.
+- Return-route labels contain only the classified path. Mixed Mobile traces normalize to `CMIN2->CMI`; latency and packet loss remain in the latency view.
+- Trace details are teleported to the document body and anchored near the clicked route row. The panel follows scroll/resize, stays inside the viewport, shows the complete masked trace, and has no pagination.
+- Managed theme settings were reduced from 50 to 34 fields and regrouped into four real paged tabs: `常规`, `首页`, `节点`, and `隐私与背景`. Advanced operational presets and low-level custom key fields are no longer exposed.
+- Validation passed with `bun run lint`, `bun run build`, three focused carrier-route Playwright checks, and the full 21-test visual suite. Keep the unrelated untracked `public/admin-app/` directory out of commits and release archives.
