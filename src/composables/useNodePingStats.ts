@@ -989,10 +989,13 @@ export function useNodeCarrierPingStats(
     const state = entry.data.value
     if (!state)
       return [...createEmptyCarrierStats('ipv4'), ...createEmptyCarrierStats('ipv6')]
-    // Without an explicit filter, aggregate each carrier across its assigned
-    // tasks and expose the contributing regions on the resulting row. This
-    // preserves legacy task payloads that omit region metadata on some rows.
-    const regions = region ? [region] : ['']
+    const knownRegions = [...new Set([
+      ...state.tasks.map(task => task.region?.trim() || ''),
+      ...(state.metricStats ?? []).map(stat => stat.region?.trim() || ''),
+    ])].filter(Boolean)
+    // Keep one row per configured region. If an older backend omits all region
+    // metadata, fall back to one aggregate row for compatibility.
+    const regions = region ? [region] : knownRegions.length ? knownRegions : ['']
     return (['ipv4', 'ipv6'] as const).flatMap(family => CHINA_CARRIER_DEFINITIONS.flatMap(definition => regions.map(targetRegion => buildCarrierStats(nodeUuid, state, definition, family, targetRegion))))
   })
 

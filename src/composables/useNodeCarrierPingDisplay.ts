@@ -148,7 +148,7 @@ export function useNodeCarrierPingDisplay(
           ? appStore.lang === 'zh-CN' ? firstState.labelZh : firstState.labelEn
           : key
         const families = (['ipv4', 'ipv6'] as const).map((family) => {
-          const carrier = states.find(item => item.family === family && (!region || item.region === region)) ?? states.find(item => item.family === family)
+          const carrier = states.find(item => item.family === family && (!region || item.region === region))
           const familyLabel = FAMILY_LABELS[family][appStore.lang === 'zh-CN' ? 'zh' : 'en']
           const scopedLabel = region ? `${region} ${label}` : label
           const taskHint = carrier?.taskNames.length
