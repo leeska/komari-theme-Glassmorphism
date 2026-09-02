@@ -382,7 +382,7 @@ function hasRegion(region: string | null | undefined): boolean {
           </div>
         </div>
 
-        <!-- 统一探测摘要：内部切换延迟/回程，避免三个并列大面板挤占节点卡片。 -->
+        <!-- 统一探测摘要：延迟、丢包与回程线路同屏展示，避免来回切换。 -->
         <NetworkProbeSummary
           v-if="props.pingEnabled"
           :node="props.node"

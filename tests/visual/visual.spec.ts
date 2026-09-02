@@ -104,9 +104,7 @@ test('node cards show optional structured carrier route results', async ({ page 
 
   const card = page.getByRole('button', { name: '查看节点 主控-洛杉矶 详情' })
   const probe = card.locator('[data-node-network-probe]')
-  const latencyHeight = await probe.evaluate(element => element.getBoundingClientRect().height)
-  await card.getByRole('tab', { name: '回程' }).click()
-  await expect.poll(() => probe.evaluate(element => element.getBoundingClientRect().height)).toBe(latencyHeight)
+  await expect(probe.locator('[data-node-carrier-latency]')).toBeVisible()
   const panel = card.locator('[data-node-carrier-route]')
   await expect(panel).toBeVisible()
   await expect(panel.locator('[data-carrier-route-family="ipv4"] [data-carrier-route]')).toHaveCount(3)
@@ -137,7 +135,7 @@ test('carrier route trace opens as one complete non-paginated panel', async ({ p
   await openStablePage(page)
 
   const card = page.getByRole('button', { name: '查看节点 主控-洛杉矶 详情' })
-  await card.getByRole('tab', { name: '回程' }).click()
+  await expect(card.locator('[data-node-carrier-latency]')).toBeVisible()
   const routeRow = card.locator('[data-carrier-route="ipv4-telecom-广东-default"]')
   await routeRow.scrollIntoViewIfNeeded()
   await routeRow.click()
@@ -191,7 +189,8 @@ test('comfortable node cards keep all carrier families readable without overflow
   await expect(probe.locator('[data-node-ping-family="ipv6"]')).toHaveCount(3)
   await expect.poll(() => probe.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
 
-  await card.getByRole('tab', { name: '回程' }).click()
+  await expect(probe.locator('[data-node-carrier-latency]')).toBeVisible()
+  await expect(probe.locator('[data-node-carrier-route]')).toBeVisible()
   await expect(probe.locator('[data-carrier-route]')).toHaveCount(6)
   await expect(probe).toContainText('CMIN2->CMI')
   await expect.poll(() => probe.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
