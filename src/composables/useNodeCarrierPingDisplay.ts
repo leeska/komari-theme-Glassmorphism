@@ -131,9 +131,9 @@ export function useNodeCarrierPingDisplay(
     const carrierStates = carrierStats.carriers.value
     const groups = Array.from(new Map(carrierStates
       .filter(state => state.taskNames.length > 0)
-      .map(state => [state.key, state] as const)), ([key]) => ({
-      key,
-      region: [...new Set(carrierStates.filter(state => state.key === key).map(state => state.region).filter(Boolean))].join(' / '),
+      .map(state => [`${state.key}:${state.region}`, state] as const)), ([, state]) => ({
+      key: state.key,
+      region: state.region,
     }))
     const carriers: ChinaCarrierKey[] = ['telecom', 'unicom', 'mobile', 'international']
     return groups
@@ -142,7 +142,7 @@ export function useNodeCarrierPingDisplay(
         return carrierOrder || left.region.localeCompare(right.region, 'zh-CN')
       })
       .map(({ key, region }) => {
-        const states = carrierStates.filter(carrier => carrier.key === key)
+        const states = carrierStates.filter(carrier => carrier.key === key && carrier.region === region)
         const firstState = states[0]
         const label = firstState
           ? appStore.lang === 'zh-CN' ? firstState.labelZh : firstState.labelEn
