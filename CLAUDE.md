@@ -70,7 +70,7 @@ Do not store secrets, tokens, private passwords, or private server credentials i
 - Gate sensitive actions/data paths through verified auth (`appStore.requireLoginPermission()` / auth service).
 - Do not parse raw `theme_settings` in components; normalize in [src/stores/app.ts](src/stores/app.ts).
 - Do not add ad-hoc caches for provider metadata, history records, or request deduplication.
-- Keep `nodeCardSize` default as `compact`; `mini` is optional and must not replace compact behavior.
+- Node cards use the single `comfortable` layout; do not add a user-facing size switch or reintroduce compact/mini squeeze branches.
 - Do not rename [komari-theme.json](komari-theme.json), [docs/preview.png](docs/preview.png), or the zip naming pattern.
 - Runtime image filenames under [public/images/](public/images/) are code contracts; check helpers before renaming.
 

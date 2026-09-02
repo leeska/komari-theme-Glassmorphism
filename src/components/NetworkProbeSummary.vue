@@ -25,7 +25,6 @@ const traceRoute = ref<CarrierRouteDisplay | null>(null)
 const traceAnchor = ref<HTMLElement | null>(null)
 const tracePanel = ref<HTMLElement | null>(null)
 const tracePanelStyle = ref<Record<string, string>>({})
-const isMini = computed(() => appStore.nodeCardSize === 'mini')
 
 const families = computed(() => (['ipv4', 'ipv6'] as const).map(family => ({
   family,
@@ -51,6 +50,16 @@ const routeUpdatedLabel = computed(() => {
 
 const routeAvailable = computed(() => routeLoading.value || routeEnabled.value === true || routeDisplays.value.length > 0)
 const panelLabel = computed(() => mode.value === 'latency' ? '三网延迟监控' : '三网回程线路')
+const PREMIUM_ROUTE_PATTERN = /^(?:CN2GIA|CN2GT|CTGGIA|CMIN2|9929)(?:->|$)|^10099->/
+
+function routeQualityClass(route: string): string {
+  const normalized = route.trim().toUpperCase()
+  if (PREMIUM_ROUTE_PATTERN.test(normalized) || normalized.includes('CMIN2->CMI')) {
+    return 'border-amber-300/55 bg-gradient-to-br from-amber-100/90 via-yellow-50/80 to-orange-100/90 text-amber-950 shadow-[inset_0_1px_0_rgba(255,255,255,.8),0_5px_14px_rgba(180,120,20,.2)] dark:border-amber-200/40 dark:from-amber-300/25 dark:via-yellow-200/15 dark:to-orange-300/20 dark:text-amber-100'
+  }
+  return 'border-current/15 bg-background/35'
+}
+
 function updateTracePanelPosition(): void {
   const anchor = traceAnchor.value
   if (!anchor || !traceRoute.value)
@@ -101,12 +110,10 @@ function closeTrace(): void {
 
 onMounted(() => {
   window.addEventListener('resize', updateTracePanelPosition)
-  window.addEventListener('scroll', updateTracePanelPosition, true)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', updateTracePanelPosition)
-  window.removeEventListener('scroll', updateTracePanelPosition, true)
 })
 
 watch(routeAvailable, (available) => {
@@ -126,20 +133,19 @@ watch(mode, () => closeTrace())
     :aria-label="`${props.node.name} ${panelLabel}`"
     @click.stop
   >
-    <header class="flex h-10 shrink-0 items-center justify-between border-b border-border/40 bg-muted/15 text-xs leading-none" :class="isMini ? 'gap-1.5 px-2' : 'gap-3 px-3'">
+    <header class="flex h-10 shrink-0 items-center justify-between gap-3 border-b border-border/40 bg-muted/15 px-3 text-xs leading-none">
       <span class="flex min-w-0 items-center gap-2 font-semibold text-muted-foreground">
         <Icon icon="tabler:activity-heartbeat" width="15" height="15" class="shrink-0" />
         <span class="whitespace-nowrap">三网监控</span>
-        <span v-if="appStore.carrierDisplayRegion && !isMini" class="min-w-0 rounded bg-muted/50 px-1.5 py-1 text-[10px] font-normal leading-none">{{ appStore.carrierDisplayRegion }}</span>
+        <span v-if="appStore.carrierDisplayRegion" class="min-w-0 rounded bg-muted/50 px-1.5 py-1 text-[10px] font-normal leading-none">{{ appStore.carrierDisplayRegion }}</span>
       </span>
       <div v-if="routeAvailable" class="inline-grid h-8 shrink-0 grid-cols-2 rounded-md bg-muted/40 p-0.5" role="tablist" aria-label="探测类型">
         <button
           type="button"
           role="tab"
           :aria-selected="mode === 'latency'"
-          class="rounded-md text-[11px] font-semibold transition-colors"
+          class="rounded-md text-[11px] font-semibold transition-colors min-w-14 px-3"
           :class="[
-            isMini ? 'min-w-11 px-2' : 'min-w-14 px-3',
             mode === 'latency' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground',
           ]"
           @click.stop="mode = 'latency'"
@@ -150,9 +156,8 @@ watch(mode, () => closeTrace())
           type="button"
           role="tab"
           :aria-selected="mode === 'route'"
-          class="rounded-md text-[11px] font-semibold transition-colors"
+          class="rounded-md text-[11px] font-semibold transition-colors min-w-14 px-3"
           :class="[
-            isMini ? 'min-w-11 px-2' : 'min-w-14 px-3',
             mode === 'route' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground',
           ]"
           @click.stop="mode = 'route'"
@@ -165,13 +170,12 @@ watch(mode, () => closeTrace())
     <button
       v-if="mode === 'latency'"
       type="button"
-      class="block min-h-0 w-full flex-1 overflow-hidden text-left"
-      :class="isMini ? 'px-2 py-2' : 'px-3 py-2'"
+      class="block min-h-0 w-full flex-1 overflow-hidden px-3 py-2 text-left"
       :aria-label="`${props.node.name} 打开 Ping 详情`"
       @click.stop="emit('pingClick')"
     >
       <div data-node-ping-bars="latency" class="grid h-full grid-rows-3 divide-y divide-border/35">
-        <div v-for="carrier in carrierDisplays" :key="carrier.key" :data-carrier-ping="carrier.key" class="grid min-h-0 min-w-0 items-center py-1.5" :class="isMini ? 'grid-cols-[2.75rem_minmax(0,1fr)_minmax(0,1fr)] gap-1.5' : 'grid-cols-[4.25rem_minmax(0,1fr)_minmax(0,1fr)] gap-3'" :title="carrier.latencyTooltip">
+        <div v-for="carrier in carrierDisplays" :key="carrier.key" :data-carrier-ping="carrier.key" class="grid min-h-0 min-w-0 grid-cols-[4.25rem_minmax(0,1fr)_minmax(0,1fr)] items-center gap-3 py-1.5" :title="carrier.latencyTooltip">
           <span class="flex min-w-0 items-center gap-1.5 text-[11px] font-semibold leading-none text-muted-foreground">
             <span class="size-2 shrink-0 rounded-full" :class="carrier.dotClass" />
             <span class="whitespace-nowrap">{{ carrier.label }}</span>
@@ -208,7 +212,7 @@ watch(mode, () => closeTrace())
               <span class="min-w-0 break-words" :title="route.taskName || route.region">{{ route.taskName || route.region }}</span>
               <span class="shrink-0 text-[10px]">{{ route.carrierLabel }}</span>
             </span>
-            <span data-carrier-route-label class="flex h-7 min-w-0 w-full items-center justify-center break-all rounded border border-current/15 bg-background/35 px-2 text-center text-[11px] font-bold leading-tight" :class="route.monitored && (route.status === '正常' || route.status === 'OK') ? 'text-success' : route.monitored ? 'text-warning' : 'text-muted-foreground/60'">{{ route.route }}</span>
+            <span data-carrier-route-label class="flex h-7 min-w-0 w-full items-center justify-center break-all rounded border px-2 text-center text-[11px] font-bold leading-tight" :class="[routeQualityClass(route.route), route.monitored && (route.status === '正常' || route.status === 'OK') ? 'text-success' : route.monitored ? 'text-warning' : 'text-muted-foreground/60']">{{ route.route }}</span>
           </button>
         </div>
         <div v-else class="text-[10px] leading-relaxed text-muted-foreground/70">

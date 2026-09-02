@@ -86,7 +86,6 @@ type DetailMetricCardPreset = 'finance' | 'status' | 'resource' | 'network' | 'g
 type ChartDashboardPreset = 'all' | 'compact' | 'resource' | 'network' | 'gpu' | 'latency' | 'ops' | 'full' | 'custom' | 'advanced'
 type Lang = 'zh-CN' | 'en-US'
 type NodeViewMode = 'card' | 'list'
-type NodeCardSize = 'mini' | 'compact' | 'comfortable' | 'large'
 type RpcTransportMode = 'websocket' | 'http'
 type EarthRenderer = 'realistic' | 'cobe' | 'tiled'
 type GlassColorPreset = 'emerald' | 'soft' | 'contrast' | 'midnight' | 'custom'
@@ -945,20 +944,9 @@ const useAppStore = defineStore('app', () => {
     return value === 'card' || value === 'list'
   }
 
-  function isValidNodeCardSize(value: unknown): value is NodeCardSize {
-    return value === 'mini' || value === 'compact' || value === 'comfortable' || value === 'large'
-  }
-
   function isValidEarthRenderer(value: unknown): value is EarthRenderer {
     return value === 'realistic' || value === 'cobe' || value === 'tiled'
   }
-
-  const nodeCardSize = computed<NodeCardSize>(() => {
-    const settings = themeSettings.value
-    if (isValidNodeCardSize(settings.nodeCardSize))
-      return settings.nodeCardSize
-    return 'compact'
-  })
 
   // Display filter only applies to latency task names. Route selections are
   // owned by Core and are intentionally never inferred from this theme value.
@@ -1321,7 +1309,6 @@ const useAppStore = defineStore('app', () => {
     toggleFavoriteNode,
     nodeViewMode,
     defaultViewMode,
-    nodeCardSize,
     carrierPingRegion,
     carrierDisplayRegion,
     rpcTransportMode,

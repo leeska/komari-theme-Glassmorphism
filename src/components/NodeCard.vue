@@ -55,14 +55,11 @@ const NODE_METRIC_ICONS = {
   traffic: 'tabler:arrows-transfer-up-down',
 } as const
 
-const isMiniNodeCard = computed(() => appStore.nodeCardSize === 'mini')
-const nodeCardXSize = computed(() => appStore.nodeCardSize === 'large' ? 'large' : 'medium')
-const nodeCardContentClass = computed(() => appStore.nodeCardSize === 'large' ? 'gap-4' : isMiniNodeCard.value ? 'gap-2' : 'gap-3')
-const nodeCardContentPaddingClass = computed(() => isMiniNodeCard.value ? 'pb-2' : '')
+const nodeCardXSize = 'medium'
+const nodeCardContentClass = 'gap-3'
+const nodeCardContentPaddingClass = ''
 const nodeCardMetricGridClass = 'grid-cols-3'
-const nodeCardMetricBoxClass = computed(() => isMiniNodeCard.value
-  ? 'px-1 py-1'
-  : appStore.nodeCardSize === 'compact' ? 'px-1.5 py-1.5' : 'px-2 py-1.5')
+const nodeCardMetricBoxClass = 'px-2 py-1.5'
 
 const formatBytes = (bytes: number) => formatBytesWithConfig(bytes, appStore.byteDecimals)
 const formatBytesPerSecond = (bytes: number) => formatBytesPerSecondWithConfig(bytes, appStore.byteDecimals)
@@ -261,62 +258,12 @@ function hasRegion(region: string | null | undefined): boolean {
         </div>
 
         <!-- 四项进度条 -->
-        <div v-if="isMiniNodeCard" class="grid grid-cols-[3fr_2fr] gap-x-4 gap-y-2">
-          <div class="grid grid-cols-2 gap-x-3 gap-y-1">
-            <div class="flex flex-col gap-1">
-              <div class="flex justify-between text-xs">
-                <span class="inline-flex items-center text-sky-500" role="img" title="CPU" aria-label="CPU">
-                  <Icon :icon="NODE_METRIC_ICONS.cpu" data-node-metric-icon="cpu" width="12" height="12" aria-hidden="true" />
-                </span>
-                <span class="tabular-nums font-medium">{{ (props.node.cpu ?? 0).toFixed(1) }}%</span>
-              </div>
-              <ProgressThin :percentage="props.node.cpu ?? 0" :status="cpuStatus" :height="4" />
-            </div>
-
-            <div class="flex flex-col gap-1" :title="swapTooltip">
-              <div class="flex justify-between text-xs">
-                <span class="inline-flex items-center text-emerald-500" role="img" title="内存" aria-label="内存">
-                  <Icon :icon="NODE_METRIC_ICONS.memory" data-node-metric-icon="memory" width="12" height="12" aria-hidden="true" />
-                </span>
-                <span class="tabular-nums font-medium">{{ memPercentage.toFixed(1) }}%</span>
-              </div>
-              <ProgressThin :percentage="memPercentage" :status="memStatus" :height="4" />
-            </div>
-
-            <div class="col-span-2 text-[11px] text-muted-foreground truncate">
-              {{ formatBytes(props.node.ram ?? 0) }} / {{ formatBytes(props.node.mem_total ?? 0) }}
-            </div>
-          </div>
-
-          <div class="flex flex-col gap-1">
-            <div class="flex justify-between text-xs">
-              <span class="inline-flex min-w-0 items-center gap-1 text-muted-foreground">
-                <Icon :icon="NODE_METRIC_ICONS.traffic" data-node-metric-icon="traffic" width="12" height="12" class="shrink-0 text-violet-500" aria-hidden="true" />
-                <span class="truncate">流量</span>
-              </span>
-              <span class="tabular-nums font-medium" :class="trafficPercentageClass">
-                {{ hasTrafficLimit(props.node) ? `${trafficUsedPercentage.toFixed(1)}%` : '∞' }}
-              </span>
-            </div>
-            <ProgressThin :percentage="trafficUsedPercentage" :status="trafficStatus" :height="4" />
-            <div class="text-[11px] truncate" :class="trafficUsedPercentage >= 95 ? 'text-destructive' : 'text-muted-foreground'">
-              {{ formatBytes(trafficUsed) }}
-              <template v-if="hasTrafficLimit(props.node)">
-                / {{ formatBytes(props.node.traffic_limit) }}
-              </template>
-              <template v-else>
-                / ∞
-              </template>
-            </div>
-          </div>
-        </div>
-
-        <div v-else class="grid grid-cols-2 gap-x-4 gap-y-2.5">
+        <div class="grid grid-cols-2 gap-x-4 gap-y-2.5">
           <!-- CPU -->
           <div class="flex flex-col gap-1">
             <div class="flex justify-between text-xs">
               <span class="inline-flex min-w-0 items-center gap-1 text-muted-foreground">
-                <Icon :icon="NODE_METRIC_ICONS.cpu" data-node-metric-icon="cpu" width="13" height="13" class="shrink-0 text-sky-500" aria-hidden="true" />
+                <span role="img" aria-label="CPU" class="inline-flex shrink-0"><Icon :icon="NODE_METRIC_ICONS.cpu" data-node-metric-icon="cpu" width="13" height="13" class="text-sky-500" aria-hidden="true" /></span>
                 <span class="truncate">CPU</span>
               </span>
               <span class="tabular-nums font-medium">{{ (props.node.cpu ?? 0).toFixed(1) }}%</span>
@@ -331,7 +278,7 @@ function hasRegion(region: string | null | undefined): boolean {
           <div class="flex flex-col gap-1" :title="swapTooltip">
             <div class="flex justify-between text-xs">
               <span class="inline-flex min-w-0 items-center gap-1 text-muted-foreground">
-                <Icon :icon="NODE_METRIC_ICONS.memory" data-node-metric-icon="memory" width="13" height="13" class="shrink-0 text-emerald-500" aria-hidden="true" />
+                <span role="img" aria-label="内存" class="inline-flex shrink-0"><Icon :icon="NODE_METRIC_ICONS.memory" data-node-metric-icon="memory" width="13" height="13" class="text-emerald-500" aria-hidden="true" /></span>
                 <span class="truncate">内存</span>
               </span>
               <span class="tabular-nums font-medium">{{ memPercentage.toFixed(1) }}%</span>
@@ -346,7 +293,7 @@ function hasRegion(region: string | null | undefined): boolean {
           <div class="flex flex-col gap-1">
             <div class="flex justify-between text-xs">
               <span class="inline-flex min-w-0 items-center gap-1 text-muted-foreground">
-                <Icon :icon="NODE_METRIC_ICONS.disk" data-node-metric-icon="disk" width="13" height="13" class="shrink-0 text-orange-500" aria-hidden="true" />
+                <span role="img" aria-label="硬盘" class="inline-flex shrink-0"><Icon :icon="NODE_METRIC_ICONS.disk" data-node-metric-icon="disk" width="13" height="13" class="text-orange-500" aria-hidden="true" /></span>
                 <span class="truncate">硬盘</span>
               </span>
               <span class="tabular-nums font-medium">{{ diskPercentage.toFixed(1) }}%</span>
@@ -361,7 +308,7 @@ function hasRegion(region: string | null | undefined): boolean {
           <div class="flex flex-col gap-1">
             <div class="flex justify-between text-xs">
               <span class="inline-flex min-w-0 items-center gap-1 text-muted-foreground">
-                <Icon :icon="NODE_METRIC_ICONS.traffic" data-node-metric-icon="traffic" width="13" height="13" class="shrink-0 text-violet-500" aria-hidden="true" />
+                <span role="img" aria-label="流量" class="inline-flex shrink-0"><Icon :icon="NODE_METRIC_ICONS.traffic" data-node-metric-icon="traffic" width="13" height="13" class="text-violet-500" aria-hidden="true" /></span>
                 <span class="truncate">流量</span>
               </span>
               <span class="tabular-nums font-medium" :class="trafficPercentageClass">

@@ -37,7 +37,7 @@ Rules:
 - Public home/detail rendering remains available when auth is missing or expired.
 - Private surfaces use `appStore.privateFeaturesAllowed` plus verified permission checks.
 - Node UUID indexes must store the reactive object from `nodes.value`, not raw objects, so live CPU/network metrics update correctly.
-- `nodeCardSize` default stays `compact`; `mini` is optional high-density mode.
+- Node cards use the single `comfortable` layout; do not add a user-facing size switch or reintroduce compact/mini squeeze branches.
 
 ## Private features and export security
 

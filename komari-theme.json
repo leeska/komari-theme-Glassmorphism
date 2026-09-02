@@ -2,7 +2,7 @@
   "name": "TZA Glassmorphism",
   "short": "Glassmorphism",
   "description": "A Glassmorphism display theme for TZA Probe with Telecom, Unicom and Mobile latency, loss and return-route panels",
-  "version": "3.3.17",
+  "version": "3.3.18",
   "author": "sanrokamlan",
   "url": "https://github.com/leeska/komari-theme-Glassmorphism",
   "preview": "preview.png",
@@ -14,7 +14,6 @@
       { "key": "themeMode", "name": "默认主题模式", "type": "select", "default": "beijing", "options": "beijing,light,dark", "help": "beijing=北京时间自动；light=亮色；dark=暗色。" },
       { "key": "dataUpdateInterval", "name": "数据更新间隔", "type": "number", "default": 3, "help": "实时数据刷新间隔，单位：秒（建议 1-10 秒）" },
       { "key": "defaultViewMode", "name": "默认视图模式", "type": "select", "default": "card", "options": "card,list", "help": "节点列表默认使用卡片或列表" },
-      { "key": "nodeCardSize", "name": "节点卡片尺寸", "type": "select", "default": "compact", "options": "mini,compact,comfortable,large", "help": "mini 与 compact 均完整显示三网数据；默认 compact。" },
       { "key": "disablePageAnimation", "name": "减弱过渡动画", "type": "switch", "default": false, "help": "减少页面过渡动画，提高低性能设备的响应速度" },
       { "key": "colorVisionMode", "name": "色觉辅助配色", "type": "select", "default": "标准", "options": "标准,色觉友好", "help": "色觉友好模式用颜色之外的线型、纹理和文字区分状态" },
 

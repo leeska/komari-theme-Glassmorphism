@@ -152,6 +152,15 @@ test('carrier route trace opens as one complete non-paginated panel', async ({ p
   await expect(tracePanel).toContainText('202.97.*.*')
   await expect(tracePanel.locator('button', { hasText: '上一页' })).toHaveCount(0)
   await expect(tracePanel.locator('button', { hasText: '下一页' })).toHaveCount(0)
+  await expect(routeRow.locator('[data-carrier-route-label]')).toHaveClass(/from-amber-100/)
+  const initialPanelBounds = await tracePanel.boundingBox()
+  if (!initialPanelBounds)
+    throw new Error('trace panel bounds unavailable')
+  await page.evaluate(() => window.scrollTo(0, 180))
+  await expect.poll(async () => {
+    const bounds = await tracePanel.boundingBox()
+    return bounds && Math.abs(bounds.x - initialPanelBounds.x) < 1 && Math.abs(bounds.y - initialPanelBounds.y) < 1
+  }).toBe(true)
   await expect.poll(async () => {
     const rowBounds = await routeRow.boundingBox()
     const panelBounds = await tracePanel.boundingBox()
@@ -165,13 +174,12 @@ test('carrier route trace opens as one complete non-paginated panel', async ({ p
   }).toBe(true)
 })
 
-test('mini node cards keep all carrier families readable without overflow', async ({ page }) => {
+test('comfortable node cards keep all carrier families readable without overflow', async ({ page }) => {
   await page.setViewportSize({ width: 900, height: 900 })
   await installKomariFixture(page, {
     carrierPingIpv6: true,
     carrierRouteEnabled: true,
     hideEarth: true,
-    nodeCardSize: 'mini',
     pingTaskOrdering: true,
   })
   await openStablePage(page)
@@ -234,9 +242,9 @@ test('home tiled layout respects custom general cards and order', async ({ page 
   await expect(cards.nth(1)).toHaveAttribute('data-general-card-key', 'offlineNodes')
 })
 
-test('home mini card metric icons remain accessible', async ({ page }) => {
+test('comfortable card metric icons remain accessible', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
-  await installKomariFixture(page, { nodeCardSize: 'mini', hideEarth: true })
+  await installKomariFixture(page, { hideEarth: true })
   await openStablePage(page)
 
   const card = page.getByRole('button', { name: '查看节点 主控-洛杉矶 详情' })

@@ -20,7 +20,6 @@ export interface VisualFixtureOptions {
   earthRenderer?: 'cobe' | 'realistic' | 'tiled'
   colorVisionFriendly?: boolean
   viewMode?: 'card' | 'list'
-  nodeCardSize?: 'mini' | 'compact' | 'comfortable' | 'large'
   freePriceNode?: boolean
   hideEarth?: boolean
   expiryThresholds?: boolean
@@ -419,7 +418,6 @@ export async function installKomariFixture(page: Page, options: VisualFixtureOpt
     dataUpdateInterval: 60,
     rpcTransportMode: 'http',
     defaultViewMode: options.viewMode ?? 'card',
-    nodeCardSize: options.nodeCardSize ?? 'compact',
     carrierDisplayRegion: options.carrierPingRegion ?? '全部',
     earthRenderer: options.earthRenderer ?? 'realistic',
     hideEarth: options.hideEarth ?? false,
