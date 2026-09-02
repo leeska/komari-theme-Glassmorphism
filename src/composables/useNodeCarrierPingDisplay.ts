@@ -14,7 +14,9 @@ export interface CarrierPingBar {
 }
 
 export interface CarrierPingDisplay {
-  key: ChinaCarrierKey
+  key: string
+  carrier: ChinaCarrierKey
+  region: string
   label: string
   dotClass: string
   families: CarrierPingFamilyDisplay[]
@@ -127,82 +129,95 @@ export function useNodeCarrierPingDisplay(
 
   const carrierDisplays = computed<CarrierPingDisplay[]>(() => {
     const carrierStates = carrierStats.carriers.value
+    const groups = Array.from(new Map(carrierStates
+      .filter(state => state.taskNames.length > 0)
+      .map(state => [state.key, state] as const)), ([key]) => ({
+      key,
+      region: [...new Set(carrierStates.filter(state => state.key === key).map(state => state.region).filter(Boolean))].join(' / '),
+    }))
     const carriers: ChinaCarrierKey[] = ['telecom', 'unicom', 'mobile', 'international']
-    return carriers.map((key) => {
-      const states = carrierStates.filter(carrier => carrier.key === key)
-      const firstState = states[0]
-      const label = firstState
-        ? appStore.lang === 'zh-CN' ? firstState.labelZh : firstState.labelEn
-        : key
-      const families = (['ipv4', 'ipv6'] as const).map((family) => {
-        const carrier = states.find(item => item.family === family)
-        const familyLabel = FAMILY_LABELS[family][appStore.lang === 'zh-CN' ? 'zh' : 'en']
-        const scopedLabel = appStore.carrierDisplayRegion ? `${appStore.carrierDisplayRegion}${label}` : label
-        const taskHint = carrier?.taskNames.length
-          ? carrier.taskNames.join(' / ')
-          : appStore.lang === 'zh-CN' ? `未匹配${scopedLabel} ${familyLabel} Ping 任务` : `No ${scopedLabel} ${familyLabel} ping task matched`
-        const hasTask = Boolean(carrier?.taskNames.length)
-        const state: CarrierPingFamilyDisplay['state'] = carrierStats.loading.value
-          ? 'loading'
-          : carrierStats.error.value
-            ? 'error'
-            : !hasTask
-                ? 'unmonitored'
-                : !carrier?.stats.hasData && !carrier?.hasLatency
-                    ? 'empty'
-                    : 'ready'
-        const emptyReason = carrierStats.loading.value
-          ? (appStore.lang === 'zh-CN' ? '加载中' : 'Loading')
-          : carrierStats.error.value
-            ? (appStore.lang === 'zh-CN' ? '加载失败' : 'Load failed')
-            : !pingStatsEnabled.value
-                ? (appStore.lang === 'zh-CN' ? '未启用 Ping 记录' : 'Ping records disabled')
-                : taskHint
-        const stats = carrier?.stats
-        const latencyBars = stats?.history.length
-          ? buildHistoryBars(`${label} ${familyLabel}`, key, stats.history, 'latency')
-          : buildEmptyBars(`${key}-${family}`, 'latency', emptyReason)
-        const lossBars = stats?.history.length
-          ? buildHistoryBars(`${label} ${familyLabel}`, key, stats.history, 'loss')
-          : buildEmptyBars(`${key}-${family}`, 'loss', emptyReason)
-        const latencyDisplay = state === 'loading'
-          ? (appStore.lang === 'zh-CN' ? '加载中' : 'Loading')
-          : state === 'error'
-            ? (appStore.lang === 'zh-CN' ? '加载失败' : 'Error')
-            : state === 'unmonitored'
-              ? (appStore.lang === 'zh-CN' ? '未监控' : 'Off')
-              : state === 'empty'
-                ? (appStore.lang === 'zh-CN' ? '暂无数据' : 'No data')
-                : carrier?.hasLatency ? `${Math.round(stats?.avgLatency ?? 0)} ms` : '-'
-        const lossDisplay = state === 'loading'
-          ? (appStore.lang === 'zh-CN' ? '加载中' : 'Loading')
-          : state === 'error'
-            ? (appStore.lang === 'zh-CN' ? '加载失败' : 'Error')
-            : state === 'unmonitored'
-              ? (appStore.lang === 'zh-CN' ? '未监控' : 'Off')
-              : state === 'empty'
-                ? (appStore.lang === 'zh-CN' ? '暂无数据' : 'No data')
-                : stats?.hasData ? `${stats.avgLoss.toFixed(1)}%` : '-'
-        const latencyTooltip = carrier?.hasLatency
-          ? `${taskHint}\n${appStore.lang === 'zh-CN' ? '平均延迟' : 'Average latency'} ${latencyDisplay}`
-          : taskHint
-        const volatility = stats && stats.avgVolatility > 0
-          ? `，${appStore.lang === 'zh-CN' ? '平均波动' : 'volatility'} ${stats.avgVolatility.toFixed(2)}`
-          : ''
-        const lossTooltip = stats?.hasData
-          ? `${taskHint}\n${appStore.lang === 'zh-CN' ? '平均丢包' : 'Average loss'} ${lossDisplay}${volatility}`
-          : taskHint
-        return { family, label: familyLabel, latencyDisplay, lossDisplay, latencyBars, lossBars, latencyTooltip, lossTooltip, state }
+    return groups
+      .sort((left, right) => {
+        const carrierOrder = carriers.indexOf(left.key) - carriers.indexOf(right.key)
+        return carrierOrder || left.region.localeCompare(right.region, 'zh-CN')
       })
-      return {
-        key,
-        label,
-        dotClass: CARRIER_DOT_CLASSES[key],
-        families,
-        latencyTooltip: families.map(family => family.latencyTooltip).filter(Boolean).join('\n'),
-        lossTooltip: families.map(family => family.lossTooltip).filter(Boolean).join('\n'),
-      }
-    }).filter(display => display.key !== 'international' || carrierStates.some(state => state.key === 'international' && state.taskNames.length > 0))
+      .map(({ key, region }) => {
+        const states = carrierStates.filter(carrier => carrier.key === key)
+        const firstState = states[0]
+        const label = firstState
+          ? appStore.lang === 'zh-CN' ? firstState.labelZh : firstState.labelEn
+          : key
+        const families = (['ipv4', 'ipv6'] as const).map((family) => {
+          const carrier = states.find(item => item.family === family && (!region || item.region === region)) ?? states.find(item => item.family === family)
+          const familyLabel = FAMILY_LABELS[family][appStore.lang === 'zh-CN' ? 'zh' : 'en']
+          const scopedLabel = region ? `${region} ${label}` : label
+          const taskHint = carrier?.taskNames.length
+            ? carrier.taskNames.join(' / ')
+            : appStore.lang === 'zh-CN' ? `未匹配${scopedLabel} ${familyLabel} Ping 任务` : `No ${scopedLabel} ${familyLabel} ping task matched`
+          const hasTask = Boolean(carrier?.taskNames.length)
+          const state: CarrierPingFamilyDisplay['state'] = carrierStats.loading.value
+            ? 'loading'
+            : carrierStats.error.value
+              ? 'error'
+              : !hasTask
+                  ? 'unmonitored'
+                  : !carrier?.stats.hasData && !carrier?.hasLatency
+                      ? 'empty'
+                      : 'ready'
+          const emptyReason = carrierStats.loading.value
+            ? (appStore.lang === 'zh-CN' ? '加载中' : 'Loading')
+            : carrierStats.error.value
+              ? (appStore.lang === 'zh-CN' ? '加载失败' : 'Load failed')
+              : !pingStatsEnabled.value
+                  ? (appStore.lang === 'zh-CN' ? '未启用 Ping 记录' : 'Ping records disabled')
+                  : taskHint
+          const stats = carrier?.stats
+          const latencyBars = stats?.history.length
+            ? buildHistoryBars(`${label} ${familyLabel}`, key, stats.history, 'latency')
+            : buildEmptyBars(`${key}-${family}`, 'latency', emptyReason)
+          const lossBars = stats?.history.length
+            ? buildHistoryBars(`${label} ${familyLabel}`, key, stats.history, 'loss')
+            : buildEmptyBars(`${key}-${family}`, 'loss', emptyReason)
+          const latencyDisplay = state === 'loading'
+            ? (appStore.lang === 'zh-CN' ? '加载中' : 'Loading')
+            : state === 'error'
+              ? (appStore.lang === 'zh-CN' ? '加载失败' : 'Error')
+              : state === 'unmonitored'
+                ? (appStore.lang === 'zh-CN' ? '未监控' : 'Off')
+                : state === 'empty'
+                  ? (appStore.lang === 'zh-CN' ? '暂无数据' : 'No data')
+                  : carrier?.hasLatency ? `${Math.round(stats?.avgLatency ?? 0)} ms` : '-'
+          const lossDisplay = state === 'loading'
+            ? (appStore.lang === 'zh-CN' ? '加载中' : 'Loading')
+            : state === 'error'
+              ? (appStore.lang === 'zh-CN' ? '加载失败' : 'Error')
+              : state === 'unmonitored'
+                ? (appStore.lang === 'zh-CN' ? '未监控' : 'Off')
+                : state === 'empty'
+                  ? (appStore.lang === 'zh-CN' ? '暂无数据' : 'No data')
+                  : stats?.hasData ? `${stats.avgLoss.toFixed(1)}%` : '-'
+          const latencyTooltip = carrier?.hasLatency
+            ? `${taskHint}\n${appStore.lang === 'zh-CN' ? '平均延迟' : 'Average latency'} ${latencyDisplay}`
+            : taskHint
+          const volatility = stats && stats.avgVolatility > 0
+            ? `，${appStore.lang === 'zh-CN' ? '平均波动' : 'volatility'} ${stats.avgVolatility.toFixed(2)}`
+            : ''
+          const lossTooltip = stats?.hasData
+            ? `${taskHint}\n${appStore.lang === 'zh-CN' ? '平均丢包' : 'Average loss'} ${lossDisplay}${volatility}`
+            : taskHint
+          return { family, label: familyLabel, latencyDisplay, lossDisplay, latencyBars, lossBars, latencyTooltip, lossTooltip, state }
+        })
+        return {
+          key: region ? `${key}-${region}` : key,
+          carrier: key,
+          region,
+          label,
+          dotClass: CARRIER_DOT_CLASSES[key],
+          families,
+          latencyTooltip: families.map(family => family.latencyTooltip).filter(Boolean).join('\n'),
+          lossTooltip: families.map(family => family.lossTooltip).filter(Boolean).join('\n'),
+        }
+      })
   })
 
   return { carrierDisplays, loading: carrierStats.loading, error: carrierStats.error }

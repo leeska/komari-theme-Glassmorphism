@@ -809,6 +809,7 @@ export type ChinaCarrierKey = 'telecom' | 'unicom' | 'mobile' | 'international'
 export interface NodeCarrierPingStatsState {
   family: CarrierRouteFamily
   key: ChinaCarrierKey
+  region: string
   labelZh: string
   labelEn: string
   taskNames: string[]
@@ -871,6 +872,7 @@ function createEmptyCarrierStats(family: CarrierRouteFamily): NodeCarrierPingSta
   return CHINA_CARRIER_DEFINITIONS.map(definition => ({
     family,
     key: definition.key,
+    region: '',
     labelZh: definition.labelZh,
     labelEn: definition.labelEn,
     taskNames: [],
@@ -888,6 +890,7 @@ function buildCarrierStats(
 ): NodeCarrierPingStatsState {
   const taskIds = new Set<number>()
   const taskNames: string[] = []
+  const taskRegions: string[] = []
   const addTask = (id: string | number, name: string, taskFamily?: CarrierRouteFamily, taskCarrier?: string, taskRegion?: string): void => {
     const taskId = normalizeTaskId(String(id))
     const taskName = name.trim()
@@ -895,7 +898,7 @@ function buildCarrierStats(
     const taskRecord = state.tasks.find(task => String(task.id) === String(id))
     const resolvedCarrier = taskCarrier || taskRecord?.carrier
     const carrierKey = definition.key === 'international'
-      ? resolvedCarrier === 'international' ? 'international' : null
+      ? resolvedCarrier === 'international' || getCarrierForTaskName(taskName) === 'international' ? 'international' : null
       : resolvedCarrier === definition.key ? definition.key : getCarrierForTaskName(taskName)
     const resolvedRegion = taskRegion?.trim() || taskRecord?.region?.trim() || ''
     if (!Number.isFinite(taskId) || !taskName || resolvedFamily !== family || carrierKey !== definition.key || !taskMatchesCarrierRegion(resolvedRegion || taskName, region))
@@ -903,6 +906,8 @@ function buildCarrierStats(
     taskIds.add(taskId)
     if (!taskNames.includes(taskName))
       taskNames.push(taskName)
+    if (resolvedRegion && !taskRegions.includes(resolvedRegion))
+      taskRegions.push(resolvedRegion)
   }
 
   for (const task of state.tasks)
@@ -933,6 +938,7 @@ function buildCarrierStats(
   return {
     family,
     key: definition.key,
+    region: taskRegions.join(' / ') || region,
     labelZh: definition.labelZh,
     labelEn: definition.labelEn,
     taskNames,
@@ -983,7 +989,11 @@ export function useNodeCarrierPingStats(
     const state = entry.data.value
     if (!state)
       return [...createEmptyCarrierStats('ipv4'), ...createEmptyCarrierStats('ipv6')]
-    return (['ipv4', 'ipv6'] as const).flatMap(family => CHINA_CARRIER_DEFINITIONS.map(definition => buildCarrierStats(nodeUuid, state, definition, family, region)))
+    // Without an explicit filter, aggregate each carrier across its assigned
+    // tasks and expose the contributing regions on the resulting row. This
+    // preserves legacy task payloads that omit region metadata on some rows.
+    const regions = region ? [region] : ['']
+    return (['ipv4', 'ipv6'] as const).flatMap(family => CHINA_CARRIER_DEFINITIONS.flatMap(definition => regions.map(targetRegion => buildCarrierStats(nodeUuid, state, definition, family, targetRegion))))
   })
 
   watch(
