@@ -2,12 +2,14 @@
 
 ## 当前任务（2026-09-02，固定卡片与回程探测可靠性）
 
-- 状态：implemented_and_verified，待提交发布。
+- 状态：completed_and_published。
 - 目标：节点卡片固定 comfortable 布局并移除尺寸设置；Trace 浮层固定在视口，不随页面滚动重定位；精品线路增加高对比高级样式；提高 NextTrace 回程探测超时、查询和部分结果处理，减少两跳假象。
 - 范围：主题 `NetworkProbeSummary`、`NodeCard`、`HomeView`、app store/manifest/可视夹具；Agent `server/carrier_route.go` 及专项测试；不改动未跟踪 `public/admin-app/`。
 - 设计：不自研替代 NextTrace，优先使用其稳定 `--raw` 管道契约；默认总超时提高到 30 秒、上限 60 秒、每跳 2.5 秒、适度增加 query/attempt；只有到达目标时提前返回，最终保留最长部分路径并标记超时。
 - 已完成：主题移除 `nodeCardSize` 配置和 mini/compact/large 分支，节点网格固定 comfortable；Trace 浮层去掉 scroll 重定位并改为不透明背景；精品线路使用金色高对比背景；Agent/Core 超时与 NextTrace 参数已同步，重复 hop 会合并排序。
 - 验证：主题 lint、type-check、build、Playwright 21/21 通过；Agent 回程专项测试和 `go build ./...` 通过；Core 定向测试和 `go build ./...` 通过。Agent 全量测试仍有既有沙箱 ICMP/raw socket 与外网 HTTP 失败。
+- 已推送：Theme `b250b09`、Core `49ae68c`、Agent `5306c60` 均已推送用户仓库 `main`。
+- Release：主题 `v3.3.18` 已发布，资产 `komari-theme-Glassmorphism-build-b250b09.zip`，SHA-256 `9b00f2109c7b6adfbdcb93b43849f1ce0b1472e7072473da82af3ebd149985cc`；ZIP 完整性和标准顶层结构已复验。
 
 ## 当前任务（2026-09-01，NextTrace 与完整回程视图）
 
