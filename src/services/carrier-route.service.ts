@@ -6,6 +6,7 @@ const FAMILY_VALUE_SANITIZE_REGEX = /[^a-z0-9]/g
 const TELECOM_CARRIER_REGEX = /电信|telecom|ctcc|chinanet|cn2/i
 const UNICOM_CARRIER_REGEX = /联通|unicom|cucc|4837|9929/i
 const MOBILE_CARRIER_REGEX = /移动|mobile|cmcc|cmi/i
+const INTERNATIONAL_CARRIER_REGEX = /international|国际|bgp|leaseweb|linode/i
 
 export interface CarrierRouteQuery {
   uuid: string
@@ -41,6 +42,8 @@ function normalizeCarrier(value: unknown): CarrierRouteCarrier | string {
     return 'unicom'
   if (MOBILE_CARRIER_REGEX.test(text))
     return 'mobile'
+  if (INTERNATIONAL_CARRIER_REGEX.test(text))
+    return 'international'
   return text || 'unknown'
 }
 

@@ -383,6 +383,9 @@ async function loadSharedPingRecords(entry: SharedPingRecordsEntry, hours: numbe
           loss_approximate: stat.loss_approximate,
           family: stat.family,
           ip_version: stat.ip_version,
+          region: (stat as PingMetricTaskStats & { region?: string }).region,
+          carrier: (stat as PingMetricTaskStats & { carrier?: string }).carrier,
+          category: (stat as PingMetricTaskStats & { category?: string }).category,
         })) ?? []
         const knownTaskIds = new Set(tasks.map(task => task.id))
         entry.data.value = {
@@ -801,7 +804,7 @@ export function useNodePingStats(
   }
 }
 
-export type ChinaCarrierKey = 'telecom' | 'unicom' | 'mobile'
+export type ChinaCarrierKey = 'telecom' | 'unicom' | 'mobile' | 'international'
 
 export interface NodeCarrierPingStatsState {
   family: CarrierRouteFamily
@@ -836,6 +839,12 @@ const CHINA_CARRIER_DEFINITIONS: Array<{
     labelZh: '移动',
     labelEn: 'Mobile',
     matchers: [/移动/, /china\s*mobile/i, /\bmobile\b/i, /\bcmcc\b/i, /\bcmi\b/i, /\bcmin2\b/i],
+  },
+  {
+    key: 'international',
+    labelZh: '国际 BGP',
+    labelEn: 'International BGP',
+    matchers: [/国际/, /international/i, /\bbgp\b/i, /leaseweb/i, /linode/i],
   },
 ]
 const CARRIER_REGION_WHITESPACE_REGEX = /\s+/gu
@@ -879,11 +888,17 @@ function buildCarrierStats(
 ): NodeCarrierPingStatsState {
   const taskIds = new Set<number>()
   const taskNames: string[] = []
-  const addTask = (id: string | number, name: string, taskFamily?: CarrierRouteFamily): void => {
+  const addTask = (id: string | number, name: string, taskFamily?: CarrierRouteFamily, taskCarrier?: string, taskRegion?: string): void => {
     const taskId = normalizeTaskId(String(id))
     const taskName = name.trim()
     const resolvedFamily = taskFamily ?? pingTaskFamily({ name: taskName }) ?? 'ipv4'
-    if (!Number.isFinite(taskId) || !taskName || resolvedFamily !== family || getCarrierForTaskName(taskName) !== definition.key || !taskMatchesCarrierRegion(taskName, region))
+    const taskRecord = state.tasks.find(task => String(task.id) === String(id))
+    const resolvedCarrier = taskCarrier || taskRecord?.carrier
+    const carrierKey = definition.key === 'international'
+      ? resolvedCarrier === 'international' ? 'international' : null
+      : resolvedCarrier === definition.key ? definition.key : getCarrierForTaskName(taskName)
+    const resolvedRegion = taskRegion?.trim() || taskRecord?.region?.trim() || ''
+    if (!Number.isFinite(taskId) || !taskName || resolvedFamily !== family || carrierKey !== definition.key || !taskMatchesCarrierRegion(resolvedRegion || taskName, region))
       return
     taskIds.add(taskId)
     if (!taskNames.includes(taskName))
@@ -891,13 +906,13 @@ function buildCarrierStats(
   }
 
   for (const task of state.tasks)
-    addTask(task.id, task.name, pingTaskFamily(task))
+    addTask(task.id, task.name, pingTaskFamily(task), task.carrier, task.region)
 
   const metricStats = state.metricStats ?? []
   for (const stat of metricStats) {
     const name = stat.name?.trim() || pingTaskName(stat)
     if (name)
-      addTask(stat.task_id, name, pingTaskFamily(stat))
+      addTask(stat.task_id, name, pingTaskFamily(stat), stat.carrier, stat.region)
   }
 
   const nodeRecords = state.recordsByClient.get(nodeUuid) ?? []

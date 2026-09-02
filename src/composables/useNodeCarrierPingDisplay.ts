@@ -39,6 +39,7 @@ const CARRIER_DOT_CLASSES: Record<ChinaCarrierKey, string> = {
   unicom: 'bg-rose-500',
   telecom: 'bg-blue-500',
   mobile: 'bg-emerald-500',
+  international: 'bg-amber-500',
 }
 
 function getLatencyToneClass(latency: number): string {
@@ -126,7 +127,7 @@ export function useNodeCarrierPingDisplay(
 
   const carrierDisplays = computed<CarrierPingDisplay[]>(() => {
     const carrierStates = carrierStats.carriers.value
-    const carriers: ChinaCarrierKey[] = ['telecom', 'unicom', 'mobile']
+    const carriers: ChinaCarrierKey[] = ['telecom', 'unicom', 'mobile', 'international']
     return carriers.map((key) => {
       const states = carrierStates.filter(carrier => carrier.key === key)
       const firstState = states[0]
@@ -201,7 +202,7 @@ export function useNodeCarrierPingDisplay(
         latencyTooltip: families.map(family => family.latencyTooltip).filter(Boolean).join('\n'),
         lossTooltip: families.map(family => family.lossTooltip).filter(Boolean).join('\n'),
       }
-    })
+    }).filter(display => display.key !== 'international' || carrierStates.some(state => state.key === 'international' && state.taskNames.length > 0))
   })
 
   return { carrierDisplays, loading: carrierStats.loading, error: carrierStats.error }

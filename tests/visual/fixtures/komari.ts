@@ -28,6 +28,7 @@ export interface VisualFixtureOptions {
   carrierPingRegion?: string
   carrierPingIpv6?: boolean
   carrierRouteEnabled?: boolean
+  internationalBGP?: boolean
   generalCardKeys?: string[]
 }
 
@@ -38,6 +39,9 @@ interface PingTaskFixture {
   loss: number
   weight: number
   family?: 'ipv4' | 'ipv6'
+  region?: string
+  carrier?: string
+  category?: string
 }
 
 function buildPingTasks(options: VisualFixtureOptions): PingTaskFixture[] {
@@ -70,6 +74,9 @@ function buildPingTasks(options: VisualFixtureOptions): PingTaskFixture[] {
         .filter(task => task.family === 'ipv4')
         .map(task => ({ ...task, id: task.id + 100, name: `${task.name} IPv6`, family: 'ipv6' as const, weight: task.weight + 100 })),
     ]
+  }
+  if (options.internationalBGP) {
+    tasks.push({ id: 200, name: '新加坡国际 BGP', interval: 60, loss: 0, weight: 200, family: 'ipv4', region: '新加坡', carrier: 'international', category: 'international_bgp' })
   }
   return tasks
 }

@@ -55,16 +55,20 @@ function statusLabel(status: string, lang: string): string {
 
 export function useNodeCarrierRouteDisplay(uuid: MaybeRefOrGetter<string>) {
   const appStore = useAppStore()
-  const routeStats = useNodeCarrierRouteStats(uuid)
+  const routeStats = useNodeCarrierRouteStats(uuid, { region: () => appStore.carrierDisplayRegion })
 
   const displays = computed<CarrierRouteDisplay[]>(() => {
     const lang = appStore.lang
+    const displayRegion = appStore.carrierDisplayRegion.trim().toLocaleLowerCase()
     const results = routeStats.results.value
     const selections = routeStats.selections.value
       .filter(selection => FAMILIES.includes(selection.family) && CARRIERS.some(item => item.key === selection.carrier))
+      .filter(selection => !displayRegion || selection.region.trim().toLocaleLowerCase().includes(displayRegion))
     const targets = routeStats.selectionsKnown.value
       ? selections
-      : results.map(result => ({ region: result.region || '全国', carrier: result.carrier, family: result.family }))
+      : results
+          .filter(result => !displayRegion || (result.region || '全国').trim().toLocaleLowerCase().includes(displayRegion))
+          .map(result => ({ region: result.region || '全国', carrier: result.carrier, family: result.family }))
     const seen = new Set<string>()
     return targets.reduce<CarrierRouteDisplay[]>((items, target) => {
       const family = target.family

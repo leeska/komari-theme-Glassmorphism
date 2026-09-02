@@ -258,10 +258,13 @@ export interface PingTaskInfo {
   /** Optional IP family reported by newer Komari agents. */
   family?: 'ipv4' | 'ipv6'
   ip_version?: string | number
+  region?: string
+  carrier?: string
+  category?: string
 }
 
 export type CarrierRouteFamily = 'ipv4' | 'ipv6'
-export type CarrierRouteCarrier = 'telecom' | 'unicom' | 'mobile'
+export type CarrierRouteCarrier = 'telecom' | 'unicom' | 'mobile' | 'international'
 
 export interface CarrierRouteSelection {
   region: string
@@ -450,6 +453,9 @@ export interface PingMetricTaskStats {
   p99_p50_ratio?: number
   family?: 'ipv4' | 'ipv6'
   ip_version?: string | number
+  region?: string
+  carrier?: string
+  category?: string
 }
 
 export interface PingMetricStatsResponse {

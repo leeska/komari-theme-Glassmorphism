@@ -948,8 +948,7 @@ const useAppStore = defineStore('app', () => {
     return value === 'realistic' || value === 'cobe' || value === 'tiled'
   }
 
-  // Display filter only applies to latency task names. Route selections are
-  // owned by Core and are intentionally never inferred from this theme value.
+  // The selected region scopes both latency summaries and return-route results.
   const carrierDisplayRegion = computed<string>(() => {
     const settings = themeSettings.value
     const selected = readStringSetting(settings, 'carrierDisplayRegion') || readStringSetting(settings, 'carrierPingRegion')

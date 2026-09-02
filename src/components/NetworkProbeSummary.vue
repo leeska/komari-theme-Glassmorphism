@@ -118,7 +118,7 @@ onBeforeUnmount(() => {
 <template>
   <section
     data-node-network-probe
-    class="network-probe-summary relative flex h-[31rem] flex-col overflow-hidden rounded-md border border-border/50 bg-background/25"
+    class="network-probe-summary relative flex h-[34rem] flex-col overflow-hidden rounded-md border border-border/50 bg-background/25"
     :class="!props.node.online ? 'blur-xs opacity-50' : ''"
     :title="appStore.carrierDisplayRegion || undefined"
     :aria-label="`${props.node.name} ${panelLabel}`"
@@ -147,8 +147,8 @@ onBeforeUnmount(() => {
           :aria-label="`${props.node.name} 打开 Ping 详情`"
           @click.stop="emit('pingClick')"
         >
-          <div data-node-ping-bars="latency" class="grid h-full grid-rows-3 divide-y divide-border/35">
-            <div v-for="carrier in carrierDisplays" :key="carrier.key" :data-carrier-ping="carrier.key" class="grid min-h-0 min-w-0 grid-cols-[4.25rem_minmax(0,1fr)_minmax(0,1fr)] items-center gap-3 py-1.5" :title="carrier.latencyTooltip">
+          <div data-node-ping-bars="latency" class="grid h-full divide-y divide-border/35" :style="{ gridTemplateRows: `repeat(${carrierDisplays.length}, minmax(0, 1fr))` }">
+            <div v-for="carrier in carrierDisplays" :key="carrier.key" :data-carrier-ping="carrier.key" class="grid min-h-0 min-w-0 grid-cols-[6rem_minmax(0,1fr)_minmax(0,1fr)] items-center gap-3 py-1.5" :title="carrier.latencyTooltip">
               <span class="flex min-w-0 items-center gap-1.5 text-[11px] font-semibold leading-none text-muted-foreground">
                 <span class="size-2 shrink-0 rounded-full" :class="carrier.dotClass" />
                 <span class="whitespace-nowrap">{{ carrier.label }}</span>
@@ -188,7 +188,7 @@ onBeforeUnmount(() => {
             <div v-if="family.routes.length" class="grid min-h-0 content-start gap-1 overflow-y-auto pr-1">
               <button v-for="route in family.routes" :key="route.key" type="button" :data-carrier-route="route.key" class="grid h-14 min-w-0 grid-cols-1 content-center gap-1 rounded-md px-2 py-1.5 text-left text-[11px] leading-tight transition-colors hover:bg-muted/45" :title="route.tooltip" @click.stop="openTrace(route, $event)">
                 <span class="flex min-w-0 items-start justify-between gap-1.5 text-muted-foreground">
-                  <span class="min-w-0 break-words" :title="route.taskName || route.region">{{ route.taskName || route.region }}</span>
+                  <span class="min-w-0 break-words" :title="route.taskName || route.region"><span class="font-semibold">{{ route.region }}</span><span v-if="route.taskName && route.taskName !== route.region" class="block text-[9px] text-muted-foreground/70">{{ route.taskName }}</span></span>
                   <span class="shrink-0 text-[10px]">{{ route.carrierLabel }}</span>
                 </span>
                 <span data-carrier-route-label class="flex h-7 min-w-0 w-full items-center justify-center break-all rounded border px-2 text-center text-[11px] font-bold leading-tight" :class="[routeQualityClass(route.route), route.monitored && (route.status === '正常' || route.status === 'OK') ? 'text-success' : route.monitored ? 'text-warning' : 'text-muted-foreground/60']">{{ route.route }}</span>

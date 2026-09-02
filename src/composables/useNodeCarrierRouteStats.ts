@@ -7,6 +7,7 @@ export function useNodeCarrierRouteStats(
   uuid: MaybeRefOrGetter<string>,
   options: {
     enabled?: MaybeRefOrGetter<boolean>
+    region?: MaybeRefOrGetter<string | undefined>
   } = {},
 ) {
   const results = ref<CarrierRouteResult[]>([])
@@ -24,6 +25,7 @@ export function useNodeCarrierRouteStats(
   const resolved = computed(() => ({
     uuid: toValue(uuid).trim(),
     enabled: toValue(options.enabled) !== false,
+    region: toValue(options.region)?.trim() || undefined,
   }))
 
   function stopTimer(): void {
@@ -56,7 +58,7 @@ export function useNodeCarrierRouteStats(
     }
     loading.value = results.value.length === 0
     error.value = null
-    requestKey = { uuid: next.uuid, families: ['ipv4', 'ipv6'] }
+    requestKey = { uuid: next.uuid, families: ['ipv4', 'ipv6'], region: next.region }
     try {
       const snapshot = await loadCarrierRouteStats(requestKey)
       results.value = snapshot.results

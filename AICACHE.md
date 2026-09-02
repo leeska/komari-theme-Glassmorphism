@@ -785,3 +785,12 @@
 - Trace details are teleported to the document body and anchored near the clicked route row. The panel follows scroll/resize, stays inside the viewport, shows the complete masked trace, and has no pagination.
 - Managed theme settings were reduced from 50 to 34 fields and regrouped into four real paged tabs: `常规`, `首页`, `节点`, and `隐私与背景`. Advanced operational presets and low-level custom key fields are no longer exposed.
 - Validation passed with `bun run lint`, `bun run build`, three focused carrier-route Playwright checks, and the full 21-test visual suite. Keep the unrelated untracked `public/admin-app/` directory out of commits and release archives.
+
+## 2026-09-02 unified monitoring follow-up
+
+- Pending publication: Core adds a unified `CarrierMonitorTask` contract and `admin:getCarrierMonitorTasks` / `admin:setCarrierMonitorTasks`; latency is the base check and `route_enabled` controls optional return-route probing for the same explicit client list.
+- The embedded catalogue now includes 10 local international BGP latency targets (Leaseweb/Linode hostnames) marked `category: international_bgp`; international tasks cannot enable return-route classification.
+- Theme uses the configured display region for both latency and route requests, reads carrier/region metadata before falling back to task-name matching, and only renders an International BGP row when an international task exists. The latency grid reserves a wider carrier column and the route row always shows the concrete region.
+- Agent installs both NextTrace variants and auto-selects `nexttrace-tiny` below 512 MiB available Linux memory; `TZA_NEXTTRACE_VARIANT=full|tiny` overrides this choice. Full NextTrace remains the fallback.
+- Validation: Core targeted tests/build, Agent route tests/build and `bash -n install.sh`, Web `npm run build` and lint (0 errors, existing warnings), Theme type-check/build and focused visual checks passed. The existing fixture suite still expects three domestic rows and passes after hiding an empty International BGP row.
+- Preserve untracked `public/admin-app/`; do not include it in commits or theme archives.

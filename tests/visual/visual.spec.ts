@@ -83,6 +83,19 @@ test('node cards filter China carrier ping tasks by configured region', async ({
     await expect(row).not.toHaveAttribute('title', /浙江/)
 })
 
+test('node cards show international BGP latency only when configured', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 })
+  await installKomariFixture(page, { internationalBGP: true, hideEarth: true })
+  await openStablePage(page)
+
+  const card = page.getByRole('button', { name: '查看节点 主控-洛杉矶 详情' })
+  const international = card.locator('[data-carrier-ping="international"]')
+  await expect(international).toHaveCount(1)
+  await expect(international).toContainText('国际 BGP')
+  await expect(international.locator('[data-node-ping-family="ipv4"]')).toBeVisible()
+  await expect(international.locator('[data-node-ping-family="ipv6"]')).toBeVisible()
+})
+
 test('node cards keep IPv4 and IPv6 carrier ping values separate', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 })
   await installKomariFixture(page, { pingTaskOrdering: true, carrierPingIpv6: true, hideEarth: true })
