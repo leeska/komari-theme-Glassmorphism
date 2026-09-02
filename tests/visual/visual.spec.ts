@@ -30,7 +30,7 @@ async function expectNodePingBars(page: Page): Promise<void> {
   const card = page.getByRole('button', { name: '查看节点 主控-洛杉矶 详情' })
   const barsByMetric = [
     card.locator('[data-node-ping-bars="latency"]'),
-    card.locator('[data-node-ping-loss-bars]').first(),
+    card.locator('[data-node-ping-loss-bars], [data-node-ping-empty]').first(),
   ]
   for (const bars of barsByMetric) {
     await expect(bars).toBeVisible()
@@ -45,6 +45,27 @@ test('home light desktop', async ({ page }) => {
   await expectNodeMetricIcons(page)
   await expectNodePingBars(page)
   await expect(page).toHaveScreenshot('home-light-desktop.png', { fullPage: false })
+})
+
+test('card view keeps each server on its own full-width row', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 })
+  await installKomariFixture(page, { hideEarth: true })
+  await openStablePage(page)
+
+  const grid = page.locator('[data-node-card-grid]')
+  const cards = grid.locator('.node-card')
+  await expect(cards).toHaveCount(12)
+  const gridBounds = await grid.boundingBox()
+  const firstBounds = await cards.nth(0).boundingBox()
+  const secondBounds = await cards.nth(1).boundingBox()
+  if (!gridBounds || !firstBounds || !secondBounds)
+    throw new Error('card layout bounds unavailable')
+
+  expect(Math.abs(firstBounds.x - gridBounds.x)).toBeLessThanOrEqual(1)
+  expect(Math.abs(secondBounds.x - gridBounds.x)).toBeLessThanOrEqual(1)
+  expect(Math.abs(firstBounds.width - gridBounds.width)).toBeLessThanOrEqual(1)
+  expect(Math.abs(secondBounds.width - gridBounds.width)).toBeLessThanOrEqual(1)
+  expect(secondBounds.y).toBeGreaterThan(firstBounds.y + firstBounds.height)
 })
 
 test('node cards show the three China carrier ping panels', async ({ page }) => {

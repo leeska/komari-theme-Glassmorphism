@@ -794,3 +794,10 @@
 - Agent installs both NextTrace variants and auto-selects `nexttrace-tiny` below 512 MiB available Linux memory; `TZA_NEXTTRACE_VARIANT=full|tiny` overrides this choice. Full NextTrace remains the fallback.
 - Validation: Core targeted tests/build, Agent route tests/build and `bash -n install.sh`, Web `npm run build` and lint (0 errors, existing warnings), Theme type-check/build and focused visual checks passed. The existing fixture suite still expects three domestic rows and passes after hiding an empty International BGP row.
 - Preserve untracked `public/admin-app/`; do not include it in commits or theme archives.
+
+## 2026-09-02 single-column server cards
+
+- Card view now renders a single full-width grid column so every server occupies its own row. `NodeCard` was restructured into identity, resource, and unified monitoring sections; desktop uses a three-column information band and mobile stacks the sections without horizontal overflow.
+- The monitoring summary keeps a stable 40rem probe area for all IPv4/IPv6 carrier rows and shows an explicit no-monitoring placeholder when a node has no carrier task. Existing carrier route labels, premium highlighting, and non-paginated masked Trace remain unchanged.
+- Added a Playwright geometry regression asserting all card rows share the grid's x/width and are vertically ordered. `bun run lint`, `bun run type-check`, `bun run build-only`, and focused Chromium visual checks passed. Full visual run reached all 23 tests before the command timeout; no product failure was reported.
+- Published to the maintainer repository on `main` and refreshed the `v3.3.20` release asset; untracked `public/admin-app/` remains excluded.

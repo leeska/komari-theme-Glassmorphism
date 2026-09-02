@@ -176,7 +176,13 @@ onBeforeUnmount(() => {
           @keydown.enter.prevent.stop="emit('pingClick')"
           @keydown.space.prevent.stop="emit('pingClick')"
         >
-          <div data-node-ping-bars="latency" class="flex min-h-full flex-col divide-y divide-border/35">
+          <div data-node-ping-bars="latency" class="flex min-h-[3.5rem] flex-col divide-y divide-border/35">
+            <div v-if="displayRows.length === 0" class="flex min-h-14 items-center justify-center px-3 py-4 text-center text-xs text-muted-foreground">
+              <div class="w-full">
+                <div>暂无已配置的三网监控</div>
+                <div data-node-ping-empty class="mx-auto mt-2 h-1 max-w-48 rounded bg-muted-foreground/10" />
+              </div>
+            </div>
             <div v-for="carrier in displayRows" :key="carrier.key" :data-carrier-ping="carrier.carrier" class="grid grid-cols-1" :title="carrier.region ? `${carrier.region}${carrier.label}` : carrier.latencyTooltip">
               <div v-for="family in carrier.families" :key="`${carrier.key}-${family.family}`" :data-service-row="`${carrier.region}-${carrier.label}-${family.family}`" :data-node-ping-family="family.family" class="grid min-h-0 min-w-0 grid-cols-1 items-center gap-2.5 py-3 sm:grid-cols-[8rem_minmax(0,1fr)_minmax(9rem,0.9fr)] sm:gap-3" :title="family.latencyTooltip">
                 <span class="flex min-w-0 items-center gap-1.5 text-[11px] font-semibold leading-tight text-muted-foreground">

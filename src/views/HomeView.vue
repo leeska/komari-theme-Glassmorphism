@@ -409,7 +409,10 @@ const activeToolTitle = computed(() => {
 })
 
 const nodeCardGridClass = computed(() => {
-  return ['grid grid-cols-1 gap-4 sm:grid-cols-[repeat(auto-fill,minmax(360px,1fr))]']
+  // Card view is intentionally a single-column stream: every server gets a
+  // full-width row so its monitoring data can be read without comparing
+  // unrelated cards side by side.
+  return ['grid grid-cols-1 gap-4']
 })
 </script>
 
@@ -544,6 +547,7 @@ const nodeCardGridClass = computed(() => {
               :css="enableNodeCardTransition"
               name="node-card-switch"
               tag="div"
+              data-node-card-grid
               :class="nodeCardGridClass"
             >
               <div
