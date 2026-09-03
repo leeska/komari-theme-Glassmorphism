@@ -45,18 +45,19 @@ interface PingTaskFixture {
   carrier?: string
   category?: string
   clients?: string[]
+  managed_by?: string
 }
 
 function buildPingTasks(options: VisualFixtureOptions): PingTaskFixture[] {
   let tasks: PingTaskFixture[]
   if (options.carrierPingRegion) {
     tasks = [
-      { id: 30, name: '浙江移动', interval: 60, loss: 0, weight: 0, family: 'ipv4' },
-      { id: 10, name: '浙江联通', interval: 60, loss: 0, weight: 1, family: 'ipv4' },
-      { id: 20, name: '浙江电信', interval: 60, loss: 0, weight: 2, family: 'ipv4' },
-      { id: 60, name: '广东移动', interval: 60, loss: 0, weight: 3, family: 'ipv4' },
-      { id: 40, name: '广东联通', interval: 60, loss: 0, weight: 4, family: 'ipv4' },
-      { id: 50, name: '广东电信', interval: 60, loss: 0, weight: 5, family: 'ipv4' },
+      { id: 30, name: '浙江移动', interval: 60, loss: 0, weight: 0, family: 'ipv4', managed_by: 'tza-carrier-monitor' },
+      { id: 10, name: '浙江联通', interval: 60, loss: 0, weight: 1, family: 'ipv4', managed_by: 'tza-carrier-monitor' },
+      { id: 20, name: '浙江电信', interval: 60, loss: 0, weight: 2, family: 'ipv4', managed_by: 'tza-carrier-monitor' },
+      { id: 60, name: '广东移动', interval: 60, loss: 0, weight: 3, family: 'ipv4', managed_by: 'tza-carrier-monitor' },
+      { id: 40, name: '广东联通', interval: 60, loss: 0, weight: 4, family: 'ipv4', managed_by: 'tza-carrier-monitor' },
+      { id: 50, name: '广东电信', interval: 60, loss: 0, weight: 5, family: 'ipv4', managed_by: 'tza-carrier-monitor' },
     ]
   }
   else if (options.singleCarrierPing) {
@@ -66,9 +67,9 @@ function buildPingTasks(options: VisualFixtureOptions): PingTaskFixture[] {
   }
   else if (options.pingTaskOrdering) {
     tasks = [
-      { id: 30, name: '浙江移动', interval: 60, loss: 0, weight: 0, family: 'ipv4', region: '浙江', carrier: 'mobile' },
-      { id: 10, name: '浙江联通', interval: 60, loss: 0, weight: 1, family: 'ipv4', region: '浙江', carrier: 'unicom' },
-      { id: 20, name: '浙江电信', interval: 60, loss: 0, weight: 2, family: 'ipv4', region: '浙江', carrier: 'telecom' },
+      { id: 30, name: '浙江移动', interval: 60, loss: 0, weight: 0, family: 'ipv4', region: '浙江', carrier: 'mobile', managed_by: 'tza-carrier-monitor' },
+      { id: 10, name: '浙江联通', interval: 60, loss: 0, weight: 1, family: 'ipv4', region: '浙江', carrier: 'unicom', managed_by: 'tza-carrier-monitor' },
+      { id: 20, name: '浙江电信', interval: 60, loss: 0, weight: 2, family: 'ipv4', region: '浙江', carrier: 'telecom', managed_by: 'tza-carrier-monitor' },
     ]
   }
   else {
@@ -289,7 +290,7 @@ function buildMetricResponse(
         metric_key: key,
         entity_id: uuid,
         type: 'gauge',
-        tags: task ? { task_id: String(task.id), task_name: task.name, ...(task.family ? { ip_version: task.family } : {}) } : {},
+        tags: task ? { task_id: String(task.id), task_name: task.name, ...(task.family ? { ip_version: task.family } : {}), ...(task.managed_by ? { managed_by: task.managed_by } : {}) } : {},
         points: points.map(point => ({
           time: point.time,
           value: metricValue(key, point.index) + (task?.id ?? 0),

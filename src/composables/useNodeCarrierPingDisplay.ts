@@ -22,6 +22,7 @@ export interface CarrierPingDisplay {
   families: CarrierPingFamilyDisplay[]
   latencyTooltip: string
   lossTooltip: string
+  taskOrder: number
 }
 
 export interface CarrierPingFamilyDisplay {
@@ -34,6 +35,7 @@ export interface CarrierPingFamilyDisplay {
   latencyTooltip: string
   lossTooltip: string
   state: 'loading' | 'error' | 'unmonitored' | 'empty' | 'ready'
+  taskOrder: number
 }
 
 const EMPTY_PING_BAR_COUNT = 20
@@ -42,6 +44,11 @@ const CARRIER_DOT_CLASSES: Record<ChinaCarrierKey, string> = {
   telecom: 'bg-blue-500',
   mobile: 'bg-emerald-500',
   international: 'bg-amber-500',
+}
+
+function minimumTaskOrder(values: number[]): number {
+  const finite = values.filter(value => Number.isFinite(value))
+  return finite.length ? Math.min(...finite) : Number.MAX_SAFE_INTEGER
 }
 
 function getLatencyToneClass(latency: number): string {
@@ -134,10 +141,14 @@ export function useNodeCarrierPingDisplay(
       .map(state => [`${state.key}:${state.region}`, state] as const)), ([, state]) => ({
       key: state.key,
       region: state.region,
+      taskOrder: minimumTaskOrder(carrierStates.filter(item => item.key === state.key && item.region === state.region).map(item => item.taskOrder)),
     }))
     const carriers: ChinaCarrierKey[] = ['telecom', 'unicom', 'mobile', 'international']
     return groups
       .sort((left, right) => {
+        const order = left.taskOrder - right.taskOrder
+        if (order)
+          return order
         const carrierOrder = carriers.indexOf(left.key) - carriers.indexOf(right.key)
         return carrierOrder || left.region.localeCompare(right.region, 'zh-CN')
       })
@@ -205,7 +216,7 @@ export function useNodeCarrierPingDisplay(
           const lossTooltip = stats?.hasData
             ? `${taskHint}\n${appStore.lang === 'zh-CN' ? '平均丢包' : 'Average loss'} ${lossDisplay}${volatility}`
             : taskHint
-          return { family, label: familyLabel, latencyDisplay, lossDisplay, latencyBars, lossBars, latencyTooltip, lossTooltip, state }
+          return { family, label: familyLabel, latencyDisplay, lossDisplay, latencyBars, lossBars, latencyTooltip, lossTooltip, state, taskOrder: carrier?.taskOrder ?? Number.MAX_SAFE_INTEGER }
         }).filter((family) => {
           // A task is configured per carrier, region and IP family. Do not
           // manufacture an IPv4/IPv6 row for the family that was not added.
@@ -224,6 +235,7 @@ export function useNodeCarrierPingDisplay(
           families,
           latencyTooltip: families.map(family => family.latencyTooltip).filter(Boolean).join('\n'),
           lossTooltip: families.map(family => family.lossTooltip).filter(Boolean).join('\n'),
+          taskOrder: minimumTaskOrder(states.map(state => state.taskOrder)),
         }
       })
       .filter((item): item is CarrierPingDisplay => Boolean(item))

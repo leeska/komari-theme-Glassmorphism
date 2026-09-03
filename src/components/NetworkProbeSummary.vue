@@ -36,6 +36,7 @@ function emptyFamily(route: CarrierRouteDisplay): CarrierPingDisplay['families']
     latencyTooltip: `${route.region} ${route.carrierLabel}`,
     lossTooltip: `${route.region} ${route.carrierLabel}`,
     state: 'unmonitored',
+    taskOrder: Number.MAX_SAFE_INTEGER,
   }
 }
 
@@ -59,10 +60,16 @@ const displayRows = computed<CarrierPingDisplay[]>(() => {
       families: [emptyFamily(route)],
       latencyTooltip: `${route.region} ${route.carrierLabel}`,
       lossTooltip: `${route.region} ${route.carrierLabel}`,
+      taskOrder: Number.MAX_SAFE_INTEGER,
     })
   }
-  for (const row of rows)
-    row.families.sort((left, right) => left.family === right.family ? 0 : left.family === 'ipv4' ? -1 : 1)
+  for (const row of rows) {
+    row.families.sort((left, right) => {
+      const order = left.taskOrder - right.taskOrder
+      return order || (left.family === right.family ? 0 : left.family === 'ipv4' ? -1 : 1)
+    })
+  }
+  rows.sort((left, right) => left.taskOrder - right.taskOrder)
   return rows
 })
 
@@ -159,15 +166,6 @@ onBeforeUnmount(() => {
     :aria-label="`${props.node.name} ${panelLabel}`"
     @click.stop
   >
-    <header class="flex h-10 shrink-0 items-center justify-between gap-3 border-b border-border/40 bg-muted/15 px-3 text-xs leading-none">
-      <span class="flex min-w-0 items-center gap-2 font-semibold text-muted-foreground">
-        <Icon icon="tabler:activity-heartbeat" width="15" height="15" class="shrink-0" />
-        <span class="whitespace-nowrap">三网监控</span>
-        <span v-if="appStore.carrierDisplayRegion" class="min-w-0 rounded bg-muted/50 px-1.5 py-1 text-[10px] font-normal leading-none">{{ appStore.carrierDisplayRegion }}</span>
-      </span>
-      <span class="shrink-0 text-[10px] font-medium text-muted-foreground/70">延迟 + 回程</span>
-    </header>
-
     <div data-node-carrier-route class="min-h-0">
       <div data-node-carrier-latency class="flex min-h-0 flex-col">
         <div class="flex h-8 shrink-0 items-center justify-between gap-2 px-3 text-[11px] font-semibold text-muted-foreground">

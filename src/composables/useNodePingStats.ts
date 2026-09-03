@@ -386,6 +386,7 @@ async function loadSharedPingRecords(entry: SharedPingRecordsEntry, hours: numbe
           region: (stat as PingMetricTaskStats & { region?: string }).region,
           carrier: (stat as PingMetricTaskStats & { carrier?: string }).carrier,
           category: (stat as PingMetricTaskStats & { category?: string }).category,
+          managed_by: (stat as PingMetricTaskStats & { managed_by?: string }).managed_by || (stat.tags?.managed_by as string | undefined),
         })) ?? []
         const knownTaskIds = new Set(tasks.map(task => task.id))
         entry.data.value = {
@@ -813,6 +814,8 @@ export interface NodeCarrierPingStatsState {
   labelZh: string
   labelEn: string
   taskNames: string[]
+  /** Lowest configured task weight for this carrier/region/family group. */
+  taskOrder: number
   stats: NodePingStatsState
   hasLatency: boolean
 }
@@ -876,6 +879,7 @@ function createEmptyCarrierStats(family: CarrierRouteFamily): NodeCarrierPingSta
     labelZh: definition.labelZh,
     labelEn: definition.labelEn,
     taskNames: [],
+    taskOrder: Number.MAX_SAFE_INTEGER,
     stats: createEmptyStats(),
     hasLatency: false,
   }))
@@ -890,6 +894,7 @@ function buildCarrierStats(
 ): NodeCarrierPingStatsState {
   const taskIds = new Set<number>()
   const taskNames: string[] = []
+  let taskOrder = Number.MAX_SAFE_INTEGER
   const taskRegions: string[] = []
   const addTask = (id: string | number, name: string, taskFamily?: CarrierRouteFamily, taskCarrier?: string, taskRegion?: string): void => {
     const taskId = normalizeTaskId(String(id))
@@ -907,6 +912,10 @@ function buildCarrierStats(
     if (!Number.isFinite(taskId) || !taskName || resolvedFamily !== family || carrierKey !== definition.key || !taskMatchesCarrierRegion(resolvedRegion || taskName, region))
       return
     taskIds.add(taskId)
+    if (taskRecord?.managed_by === 'tza-carrier-monitor' && typeof taskRecord.weight === 'number' && Number.isFinite(taskRecord.weight))
+      taskOrder = Math.min(taskOrder, taskRecord.weight)
+    else if (taskRecord?.managed_by === undefined && taskRecord?.carrier && typeof taskRecord.weight === 'number' && Number.isFinite(taskRecord.weight))
+      taskOrder = Math.min(taskOrder, taskRecord.weight)
     if (!taskNames.includes(taskName))
       taskNames.push(taskName)
     if (resolvedRegion && !taskRegions.includes(resolvedRegion))
@@ -945,6 +954,7 @@ function buildCarrierStats(
     labelZh: definition.labelZh,
     labelEn: definition.labelEn,
     taskNames,
+    taskOrder,
     stats,
     hasLatency,
   }

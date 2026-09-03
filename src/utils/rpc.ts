@@ -261,6 +261,7 @@ export interface PingTaskInfo {
   region?: string
   carrier?: string
   category?: string
+  managed_by?: string
 }
 
 export type CarrierRouteFamily = 'ipv4' | 'ipv6'
