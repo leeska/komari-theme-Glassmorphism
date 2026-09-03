@@ -801,3 +801,12 @@
 - The monitoring summary keeps a stable 40rem probe area for all IPv4/IPv6 carrier rows and shows an explicit no-monitoring placeholder when a node has no carrier task. Existing carrier route labels, premium highlighting, and non-paginated masked Trace remain unchanged.
 - Added a Playwright geometry regression asserting all card rows share the grid's x/width and are vertically ordered. `bun run lint`, `bun run type-check`, `bun run build-only`, and focused Chromium visual checks passed. Full visual run reached all 23 tests before the command timeout; no product failure was reported.
 - Published to the maintainer repository on `main` and refreshed the `v3.3.20` release asset; untracked `public/admin-app/` remains excluded.
+
+## 2026-09-03 monitoring content-driven layout (M4/M6)
+
+- Monitoring cards no longer reserve the historical 40rem probe panel. Their height follows the actual task list, and deferred placeholders use a typical 360px height instead of 800px.
+- The public theme renders only the carrier, region, and IP-family tasks configured for the current node. Explicit `clients: []` is intentionally rendered as no assignment; a missing legacy `clients` field remains compatible with older public RPC payloads.
+- Route-only data adds only the configured IP family and merges with the matching carrier and region instead of manufacturing all three carriers or both protocols.
+- Visual coverage now checks a single assigned IPv4 task, an unassigned node, explicit empty client bindings, actual IPv4-only International BGP, region-aligned latency/route tasks, and compact probe height. Full Chromium visual suite passed 25/25.
+- TZA-Web Monitoring Center table switched from fixed proportional columns to content-aware sizing: name/status/action columns shrink to their content, while executor and target columns receive remaining width. Browser geometry at 2350px confirmed no document overflow and a 184px name column; at 1100px the 1080px table scrolls inside its container without document overflow.
+- Validation: Theme `bun run lint`, `bun run build`, full `bunx playwright test` (25/25); Web `npm run lint` (0 errors, 26 pre-existing warnings) and `npm run build` passed. Preserve untracked `public/admin-app/` and exclude it from commits/releases.

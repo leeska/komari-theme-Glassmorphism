@@ -265,9 +265,9 @@ const isDenseNodeGrid = computed(() => appStore.nodeViewMode === 'card' && nodeL
 const enableNodeCardTransition = computed(() => !appStore.disablePageAnimation && !isDenseNodeGrid.value)
 const reduceDenseNodeEffects = computed(() => appStore.nodeViewMode === 'card' && nodeList.value.length > denseNodePingAnimationThreshold)
 const deferNodeCards = computed(() => appStore.nodeViewMode === 'card' && nodeList.value.length > UI_CONFIG.virtualList.nodeThreshold)
-// Keep suspended card placeholders aligned with the expanded network summary.
-// This prevents the virtual grid from shifting when a deferred NodeCard mounts.
-const deferredNodeCardHeight = 800
+// The comfortable row now sizes to its configured monitor items. Keep the
+// placeholder near the typical card height without reserving the old 40rem panel.
+const deferredNodeCardHeight = 360
 
 const quickControlCounts = computed<Record<HomeQuickControlKey, number>>(() => {
   let base = groupNodeList.value

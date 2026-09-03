@@ -431,6 +431,7 @@ function hasRegion(region: string | null | undefined): boolean {
 .node-card-layout {
   display: grid;
   grid-template-columns: 1fr;
+  align-items: start;
 }
 
 @media (min-width: 1200px) {
@@ -440,8 +441,8 @@ function hasRegion(region: string | null | undefined): boolean {
 }
 
 .node-card-probes :deep(.network-probe-summary) {
-  height: 40rem;
-  min-height: 40rem;
+  height: auto;
+  min-height: 0;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -449,8 +450,8 @@ function hasRegion(region: string | null | undefined): boolean {
 
 @media (max-width: 1199px) {
   .node-card-probes :deep(.network-probe-summary) {
-    height: 40rem;
-    min-height: 40rem;
+    height: auto;
+    min-height: 0;
   }
 }
 </style>

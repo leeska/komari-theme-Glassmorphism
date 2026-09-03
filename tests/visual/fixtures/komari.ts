@@ -27,6 +27,8 @@ export interface VisualFixtureOptions {
   pingTaskOrdering?: boolean
   carrierPingRegion?: string
   carrierPingIpv6?: boolean
+  singleCarrierPing?: boolean
+  pingTaskClients?: string[]
   carrierRouteEnabled?: boolean
   internationalBGP?: boolean
   generalCardKeys?: string[]
@@ -42,6 +44,7 @@ interface PingTaskFixture {
   region?: string
   carrier?: string
   category?: string
+  clients?: string[]
 }
 
 function buildPingTasks(options: VisualFixtureOptions): PingTaskFixture[] {
@@ -56,11 +59,16 @@ function buildPingTasks(options: VisualFixtureOptions): PingTaskFixture[] {
       { id: 50, name: '广东电信', interval: 60, loss: 0, weight: 5, family: 'ipv4' },
     ]
   }
+  else if (options.singleCarrierPing) {
+    tasks = [
+      { id: 20, name: '四川电信 IPv4', interval: 60, loss: 0, weight: 0, family: 'ipv4', region: '四川', carrier: 'telecom' },
+    ]
+  }
   else if (options.pingTaskOrdering) {
     tasks = [
-      { id: 30, name: '浙江移动', interval: 60, loss: 0, weight: 0, family: 'ipv4' },
-      { id: 10, name: '浙江联通', interval: 60, loss: 0, weight: 1, family: 'ipv4' },
-      { id: 20, name: '浙江电信', interval: 60, loss: 0, weight: 2, family: 'ipv4' },
+      { id: 30, name: '浙江移动', interval: 60, loss: 0, weight: 0, family: 'ipv4', region: '浙江', carrier: 'mobile' },
+      { id: 10, name: '浙江联通', interval: 60, loss: 0, weight: 1, family: 'ipv4', region: '浙江', carrier: 'unicom' },
+      { id: 20, name: '浙江电信', interval: 60, loss: 0, weight: 2, family: 'ipv4', region: '浙江', carrier: 'telecom' },
     ]
   }
   else {
@@ -78,6 +86,8 @@ function buildPingTasks(options: VisualFixtureOptions): PingTaskFixture[] {
   if (options.internationalBGP) {
     tasks.push({ id: 200, name: '新加坡国际 BGP', interval: 60, loss: 0, weight: 200, family: 'ipv4', region: '新加坡', carrier: 'international', category: 'international_bgp' })
   }
+  if (options.pingTaskClients !== undefined)
+    tasks = tasks.map(task => ({ ...task, clients: options.pingTaskClients }))
   return tasks
 }
 
@@ -304,6 +314,7 @@ async function handleRpc(route: Route, clientFixtures = clients, options: Visual
     time: new Date(Date.parse(FIXED_NOW) - (47 - index) * 75_000).toISOString(),
     value: index % 17 === 0 ? -1 : 76 + index + task.id,
   })))
+  const carrierRouteRegion = options.pingTaskOrdering ? options.carrierPingRegion || '浙江' : '广东'
   let result: unknown
 
   switch (payload.method) {
@@ -377,20 +388,20 @@ async function handleRpc(route: Route, clientFixtures = clients, options: Visual
             interval_seconds: 3600,
             source_version: 'tza-probe/visual',
             selections: [
-              ...['telecom', 'unicom', 'mobile'].map(carrier => ({ region: '广东', carrier, family: 'ipv4' })),
-              ...['telecom', 'unicom', 'mobile'].map(carrier => ({ region: '广东', carrier, family: 'ipv6' })),
+              ...['telecom', 'unicom', 'mobile'].map(carrier => ({ region: carrierRouteRegion, carrier, family: 'ipv4' })),
+              ...['telecom', 'unicom', 'mobile'].map(carrier => ({ region: carrierRouteRegion, carrier, family: 'ipv6' })),
             ],
             results: [
-              { node_uuid: uuid, region: '广东', family: 'ipv4', carrier: 'telecom', route: 'CN2GIA', status: 'ok', latency_ms: 42, loss_percent: 0, sent: 3, received: 3, checked_at: FIXED_NOW, trace: [
+              { node_uuid: uuid, region: carrierRouteRegion, family: 'ipv4', carrier: 'telecom', route: 'CN2GIA', status: 'ok', latency_ms: 42, loss_percent: 0, sent: 3, received: 3, checked_at: FIXED_NOW, trace: [
                 { hop: 1, address: '10.0.*.*', network: 'LAN', asn: 'AS64512', rtt_ms: 1.2 },
                 { hop: 2, address: '59.43.*.*', network: 'CN2', asn: 'AS4809', rtt_ms: 12.5 },
                 { hop: 3, address: '202.97.*.*', network: 'CN2', asn: 'AS4809', rtt_ms: 42.1 },
               ] },
-              { node_uuid: uuid, region: '广东', family: 'ipv4', carrier: 'unicom', route: '4837', status: 'ok', latency_ms: 55, loss_percent: 0, sent: 3, received: 3, checked_at: FIXED_NOW },
-              { node_uuid: uuid, region: '广东', family: 'ipv4', carrier: 'mobile', route: 'CMI', status: 'timeout', latency_ms: null, loss_percent: 100, sent: 3, received: 0, checked_at: FIXED_NOW },
-              { node_uuid: uuid, region: '广东', family: 'ipv6', carrier: 'telecom', route: '163', status: 'ok', latency_ms: 48, loss_percent: 0, sent: 3, received: 3, checked_at: FIXED_NOW },
-              { node_uuid: uuid, region: '广东', family: 'ipv6', carrier: 'unicom', route: '9929', status: 'ok', latency_ms: 61, loss_percent: 0, sent: 3, received: 3, checked_at: FIXED_NOW },
-              { node_uuid: uuid, region: '广东', family: 'ipv6', carrier: 'mobile', route: 'CMIN2->CMI', status: 'ok', latency_ms: 73, loss_percent: 1.2, sent: 3, received: 3, checked_at: FIXED_NOW },
+              { node_uuid: uuid, region: carrierRouteRegion, family: 'ipv4', carrier: 'unicom', route: '4837', status: 'ok', latency_ms: 55, loss_percent: 0, sent: 3, received: 3, checked_at: FIXED_NOW },
+              { node_uuid: uuid, region: carrierRouteRegion, family: 'ipv4', carrier: 'mobile', route: 'CMI', status: 'timeout', latency_ms: null, loss_percent: 100, sent: 3, received: 0, checked_at: FIXED_NOW },
+              { node_uuid: uuid, region: carrierRouteRegion, family: 'ipv6', carrier: 'telecom', route: '163', status: 'ok', latency_ms: 48, loss_percent: 0, sent: 3, received: 3, checked_at: FIXED_NOW },
+              { node_uuid: uuid, region: carrierRouteRegion, family: 'ipv6', carrier: 'unicom', route: '9929', status: 'ok', latency_ms: 61, loss_percent: 0, sent: 3, received: 3, checked_at: FIXED_NOW },
+              { node_uuid: uuid, region: carrierRouteRegion, family: 'ipv6', carrier: 'mobile', route: 'CMIN2->CMI', status: 'ok', latency_ms: 73, loss_percent: 1.2, sent: 3, received: 3, checked_at: FIXED_NOW },
             ],
           }
         : null

@@ -206,7 +206,15 @@ export function useNodeCarrierPingDisplay(
             ? `${taskHint}\n${appStore.lang === 'zh-CN' ? '平均丢包' : 'Average loss'} ${lossDisplay}${volatility}`
             : taskHint
           return { family, label: familyLabel, latencyDisplay, lossDisplay, latencyBars, lossBars, latencyTooltip, lossTooltip, state }
+        }).filter((family) => {
+          // A task is configured per carrier, region and IP family. Do not
+          // manufacture an IPv4/IPv6 row for the family that was not added.
+          // Route-only legacy data is retained when it has an explicit result.
+          const hasPingTask = states.some(item => item.family === family.family && item.taskNames.length > 0)
+          return hasPingTask
         })
+        if (!families.length)
+          return null
         return {
           key: region ? `${key}-${region}` : key,
           carrier: key,
@@ -218,6 +226,7 @@ export function useNodeCarrierPingDisplay(
           lossTooltip: families.map(family => family.lossTooltip).filter(Boolean).join('\n'),
         }
       })
+      .filter((item): item is CarrierPingDisplay => Boolean(item))
   })
 
   return { carrierDisplays, loading: carrierStats.loading, error: carrierStats.error }

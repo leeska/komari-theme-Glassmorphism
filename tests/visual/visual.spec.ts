@@ -76,7 +76,7 @@ test('node cards show the three China carrier ping panels', async ({ page }) => 
   const card = page.getByRole('button', { name: '查看节点 主控-洛杉矶 详情' })
   const latencyRows = card.locator('[data-node-ping-bars="latency"] [data-carrier-ping]')
   await expect(card.locator('[data-node-ping-bars="latency"]')).toBeVisible()
-  await expect(card.locator('[data-node-ping-loss-bars]')).toHaveCount(6)
+  await expect(card.locator('[data-node-ping-loss-bars]')).toHaveCount(3)
   await expect(card.locator('[data-node-ping-loss-bars]').first()).toBeVisible()
   await expect(latencyRows).toHaveCount(3)
   for (const [index, carrier] of ['telecom', 'unicom', 'mobile'].entries())
@@ -114,7 +114,38 @@ test('node cards show international BGP latency only when configured', async ({ 
   await expect(international).toHaveCount(1)
   await expect(international).toContainText('国际 BGP')
   await expect(international.locator('[data-node-ping-family="ipv4"]')).toBeVisible()
-  await expect(international.locator('[data-node-ping-family="ipv6"]')).toBeVisible()
+  await expect(international.locator('[data-node-ping-family="ipv6"]')).toHaveCount(0)
+})
+
+test('node cards show only explicitly assigned carrier monitoring items', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await installKomariFixture(page, {
+    singleCarrierPing: true,
+    pingTaskClients: ['00000000-0000-4000-8000-000000000001'],
+    hideEarth: true,
+  })
+  await openStablePage(page)
+
+  const assignedCard = page.getByRole('button', { name: '查看节点 主控-洛杉矶 详情' })
+  const unassignedCard = page.getByRole('button', { name: '查看节点 香港边缘节点-超长名称布局测试 详情' })
+  await expect(assignedCard.locator('[data-service-row]')).toHaveCount(1)
+  await expect(assignedCard.locator('[data-service-row="四川-电信-ipv4"]')).toBeVisible()
+  await expect(assignedCard.locator('[data-node-ping-family="ipv6"]')).toHaveCount(0)
+  await expect(unassignedCard.locator('[data-service-row]')).toHaveCount(0)
+  await expect(unassignedCard.locator('[data-node-ping-empty]')).toBeVisible()
+
+  const assignedProbeHeight = await assignedCard.locator('[data-node-network-probe]').evaluate(element => element.getBoundingClientRect().height)
+  expect(assignedProbeHeight).toBeLessThan(220)
+})
+
+test('an explicit empty client list does not assign a monitor to every node', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 })
+  await installKomariFixture(page, { singleCarrierPing: true, pingTaskClients: [], hideEarth: true })
+  await openStablePage(page)
+
+  const firstCard = page.getByRole('button', { name: '查看节点 主控-洛杉矶 详情' })
+  await expect(firstCard.locator('[data-service-row]')).toHaveCount(0)
+  await expect(firstCard.locator('[data-node-ping-empty]')).toBeVisible()
 })
 
 test('node cards keep IPv4 and IPv6 carrier ping values separate', async ({ page }) => {
@@ -156,7 +187,7 @@ test('node cards show optional structured carrier route results', async ({ page 
     })).toBe(true)
   }
   const labelHeights = await panel.locator('[data-carrier-route-label]').evaluateAll(elements => elements.map(element => element.getBoundingClientRect().height))
-  expect(new Set(labelHeights)).toEqual(new Set([28]))
+  expect(new Set(labelHeights)).toEqual(new Set([24]))
   await expect(panel).toContainText('CN2GIA')
   await expect(panel).toContainText('CMIN2->CMI')
   await expect(panel).not.toContainText('42 ms')

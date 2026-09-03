@@ -896,6 +896,9 @@ function buildCarrierStats(
     const taskName = name.trim()
     const resolvedFamily = taskFamily ?? pingTaskFamily({ name: taskName }) ?? 'ipv4'
     const taskRecord = state.tasks.find(task => String(task.id) === String(id))
+    const hasExplicitClients = taskRecord && Object.hasOwn(taskRecord, 'clients')
+    if (hasExplicitClients && (!Array.isArray(taskRecord.clients) || !taskRecord.clients.includes(nodeUuid)))
+      return
     const resolvedCarrier = taskCarrier || taskRecord?.carrier
     const carrierKey = definition.key === 'international'
       ? resolvedCarrier === 'international' || getCarrierForTaskName(taskName) === 'international' ? 'international' : null

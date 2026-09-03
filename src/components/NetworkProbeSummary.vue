@@ -25,35 +25,44 @@ const traceAnchor = ref<HTMLElement | null>(null)
 const tracePanel = ref<HTMLElement | null>(null)
 const tracePanelStyle = ref<Record<string, string>>({})
 
+function emptyFamily(route: CarrierRouteDisplay): CarrierPingDisplay['families'][number] {
+  return {
+    family: route.family,
+    label: route.familyLabel,
+    latencyDisplay: '-',
+    lossDisplay: '-',
+    latencyBars: [],
+    lossBars: [],
+    latencyTooltip: `${route.region} ${route.carrierLabel}`,
+    lossTooltip: `${route.region} ${route.carrierLabel}`,
+    state: 'unmonitored',
+  }
+}
+
 const displayRows = computed<CarrierPingDisplay[]>(() => {
   const rows = [...carrierDisplays.value]
-  const seen = new Set(rows.map(row => row.carrier))
   for (const route of routeDisplays.value) {
     const key = route.carrier as CarrierPingDisplay['carrier']
-    if (seen.has(key))
+    const region = route.region.trim().toLocaleLowerCase()
+    const existing = rows.find(row => row.carrier === key && row.region.trim().toLocaleLowerCase() === region)
+    if (existing) {
+      if (!existing.families.some(family => family.family === route.family))
+        existing.families.push(emptyFamily(route))
       continue
-    seen.add(key)
+    }
     rows.push({
       key: `${route.carrier}-${route.region}`,
       carrier: route.carrier as CarrierPingDisplay['carrier'],
       region: route.region,
       label: route.carrierLabel,
       dotClass: 'bg-muted-foreground',
-      families: (['ipv4', 'ipv6'] as const).map(family => ({
-        family,
-        label: family === 'ipv4' ? 'IPv4' : 'IPv6',
-        latencyDisplay: '-',
-        lossDisplay: '-',
-        latencyBars: [],
-        lossBars: [],
-        latencyTooltip: `${route.region} ${route.carrierLabel}`,
-        lossTooltip: `${route.region} ${route.carrierLabel}`,
-        state: 'unmonitored' as const,
-      })),
+      families: [emptyFamily(route)],
       latencyTooltip: `${route.region} ${route.carrierLabel}`,
       lossTooltip: `${route.region} ${route.carrierLabel}`,
     })
   }
+  for (const row of rows)
+    row.families.sort((left, right) => left.family === right.family ? 0 : left.family === 'ipv4' ? -1 : 1)
   return rows
 })
 
@@ -144,7 +153,7 @@ onBeforeUnmount(() => {
 <template>
   <section
     data-node-network-probe
-    class="network-probe-summary relative flex h-[40rem] flex-col overflow-hidden rounded-md border border-border/50 bg-background/25"
+    class="network-probe-summary relative flex min-h-0 flex-col overflow-hidden rounded-md border border-border/50 bg-background/25"
     :class="!props.node.online ? 'blur-xs opacity-50' : ''"
     :title="appStore.carrierDisplayRegion || undefined"
     :aria-label="`${props.node.name} ${panelLabel}`"
@@ -159,8 +168,8 @@ onBeforeUnmount(() => {
       <span class="shrink-0 text-[10px] font-medium text-muted-foreground/70">延迟 + 回程</span>
     </header>
 
-    <div data-node-carrier-route class="min-h-0 flex-1 overflow-hidden">
-      <div data-node-carrier-latency class="flex h-full min-h-0 flex-col">
+    <div data-node-carrier-route class="min-h-0">
+      <div data-node-carrier-latency class="flex min-h-0 flex-col">
         <div class="flex h-8 shrink-0 items-center justify-between gap-2 px-3 text-[11px] font-semibold text-muted-foreground">
           <span class="flex items-center gap-1.5"><Icon icon="tabler:activity-heartbeat" width="14" height="14" />延迟、丢包与回程</span>
           <button type="button" class="inline-flex min-h-7 items-center gap-1 rounded-md px-2 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground" :aria-label="`${props.node.name} 打开 Ping 详情`" @click.stop="emit('pingClick')">
@@ -170,7 +179,7 @@ onBeforeUnmount(() => {
         <div
           role="button"
           tabindex="0"
-          class="block min-h-0 w-full flex-1 overflow-y-auto px-3 pb-2 text-left"
+          class="block min-h-0 w-full px-3 pb-1 text-left"
           :aria-label="`${props.node.name} 打开 Ping 详情`"
           @click.stop="emit('pingClick')"
           @keydown.enter.prevent.stop="emit('pingClick')"
@@ -184,7 +193,7 @@ onBeforeUnmount(() => {
               </div>
             </div>
             <div v-for="carrier in displayRows" :key="carrier.key" :data-carrier-ping="carrier.carrier" class="grid grid-cols-1" :title="carrier.region ? `${carrier.region}${carrier.label}` : carrier.latencyTooltip">
-              <div v-for="family in carrier.families" :key="`${carrier.key}-${family.family}`" :data-service-row="`${carrier.region}-${carrier.label}-${family.family}`" :data-node-ping-family="family.family" class="grid min-h-0 min-w-0 grid-cols-1 items-center gap-2.5 py-3 sm:grid-cols-[8rem_minmax(0,1fr)_minmax(9rem,0.9fr)] sm:gap-3" :title="family.latencyTooltip">
+              <div v-for="family in carrier.families" :key="`${carrier.key}-${family.family}`" :data-service-row="`${carrier.region}-${carrier.label}-${family.family}`" :data-node-ping-family="family.family" class="grid min-h-0 min-w-0 grid-cols-1 items-center gap-2 py-2 sm:grid-cols-[7.25rem_minmax(0,1fr)_minmax(8rem,0.78fr)] sm:gap-2.5" :title="family.latencyTooltip">
                 <span class="flex min-w-0 items-center gap-1.5 text-[11px] font-semibold leading-tight text-muted-foreground">
                   <span class="size-2 shrink-0 rounded-full" :class="carrier.dotClass" />
                   <span class="min-w-0 break-words">{{ carrier.region ? `${carrier.region} ${carrier.label}` : carrier.label }}<span class="mt-1 block text-[10px] font-medium text-muted-foreground/70">{{ family.label }}</span></span>
@@ -207,9 +216,9 @@ onBeforeUnmount(() => {
                   </div>
                 </div>
                 <div :data-carrier-route-family="family.family" class="min-w-0">
-                  <button v-if="routeFor(carrier, family.family)" type="button" :data-carrier-route="routeFor(carrier, family.family)?.key" class="grid min-h-14 w-full min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-2 rounded-md border border-border/60 px-2.5 py-2 text-left text-[10px] leading-tight transition-colors hover:bg-muted/45" :title="routeFor(carrier, family.family)?.tooltip" @click.stop="openTrace(routeFor(carrier, family.family)!, $event)">
+                  <button v-if="routeFor(carrier, family.family)" type="button" :data-carrier-route="routeFor(carrier, family.family)?.key" class="grid min-h-10 w-full min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-1.5 rounded-md border border-border/60 px-2 py-1.5 text-left text-[10px] leading-tight transition-colors hover:bg-muted/45" :title="routeFor(carrier, family.family)?.tooltip" @click.stop="openTrace(routeFor(carrier, family.family)!, $event)">
                     <span class="shrink-0 text-[10px] font-medium text-muted-foreground/70">回程线路</span>
-                    <span data-carrier-route-label class="flex min-h-7 min-w-0 items-center break-all rounded border px-2 font-bold" :class="[routeQualityClass(routeFor(carrier, family.family)?.route || '-'), routeFor(carrier, family.family)?.monitored && (routeFor(carrier, family.family)?.status === '正常' || routeFor(carrier, family.family)?.status === 'OK') ? 'text-success' : routeFor(carrier, family.family)?.monitored ? 'text-warning' : 'text-muted-foreground/60']">{{ routeFor(carrier, family.family)?.route }}</span>
+                    <span data-carrier-route-label class="flex min-h-6 min-w-0 items-center break-all rounded border px-1.5 font-bold" :class="[routeQualityClass(routeFor(carrier, family.family)?.route || '-'), routeFor(carrier, family.family)?.monitored && (routeFor(carrier, family.family)?.status === '正常' || routeFor(carrier, family.family)?.status === 'OK') ? 'text-success' : routeFor(carrier, family.family)?.monitored ? 'text-warning' : 'text-muted-foreground/60']">{{ routeFor(carrier, family.family)?.route }}</span>
                   </button>
                   <span v-else class="mt-1 block truncate text-[9px] text-muted-foreground/50">回程未开启</span>
                 </div>
