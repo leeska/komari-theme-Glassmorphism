@@ -154,12 +154,16 @@ test('node cards keep IPv4 and IPv6 carrier ping values separate', async ({ page
   await openStablePage(page)
 
   const card = page.getByRole('button', { name: '查看节点 主控-洛杉矶 详情' })
-  const latencyRows = card.locator('[data-node-ping-bars="latency"] [data-carrier-ping]')
-  await expect(latencyRows).toHaveCount(3)
-  for (const row of await latencyRows.all()) {
-    await expect(row.locator('[data-node-ping-family="ipv4"]')).toBeVisible()
-    await expect(row.locator('[data-node-ping-family="ipv6"]')).toBeVisible()
-  }
+  const serviceRows = card.locator('[data-node-ping-bars="latency"] [data-service-row]')
+  await expect(serviceRows).toHaveCount(6)
+  await expect(serviceRows.evaluateAll(rows => rows.map(row => row.getAttribute('data-service-row')))).resolves.toEqual([
+    '浙江-移动-ipv4',
+    '浙江-联通-ipv4',
+    '浙江-电信-ipv4',
+    '浙江-移动-ipv6',
+    '浙江-联通-ipv6',
+    '浙江-电信-ipv6',
+  ])
 })
 
 test('node cards show optional structured carrier route results', async ({ page }) => {
@@ -249,7 +253,7 @@ test('comfortable node cards keep all carrier families readable without overflow
 
   const card = page.getByRole('button', { name: '查看节点 主控-洛杉矶 详情' })
   const probe = card.locator('[data-node-network-probe]')
-  await expect(probe.locator('[data-carrier-ping]')).toHaveCount(3)
+  await expect(probe.locator('[data-carrier-ping]')).toHaveCount(6)
   await expect(probe.locator('[data-node-ping-family="ipv4"]')).toHaveCount(3)
   await expect(probe.locator('[data-node-ping-family="ipv6"]')).toHaveCount(3)
   await expect.poll(() => probe.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)

@@ -46,11 +46,6 @@ const CARRIER_DOT_CLASSES: Record<ChinaCarrierKey, string> = {
   international: 'bg-amber-500',
 }
 
-function minimumTaskOrder(values: number[]): number {
-  const finite = values.filter(value => Number.isFinite(value))
-  return finite.length ? Math.min(...finite) : Number.MAX_SAFE_INTEGER
-}
-
 function getLatencyToneClass(latency: number): string {
   if (latency <= 60)
     return 'bg-signal-1'
@@ -138,29 +133,34 @@ export function useNodeCarrierPingDisplay(
     const carrierStates = carrierStats.carriers.value
     const groups = Array.from(new Map(carrierStates
       .filter(state => state.taskNames.length > 0)
-      .map(state => [`${state.key}:${state.region}`, state] as const)), ([, state]) => ({
+      .map(state => [`${state.key}:${state.region}:${state.family}`, state] as const)), ([, state]) => ({
       key: state.key,
       region: state.region,
-      taskOrder: minimumTaskOrder(carrierStates.filter(item => item.key === state.key && item.region === state.region).map(item => item.taskOrder)),
+      family: state.family,
+      taskOrder: state.taskOrder,
     }))
     const carriers: ChinaCarrierKey[] = ['telecom', 'unicom', 'mobile', 'international']
+    const families: CarrierRouteFamily[] = ['ipv4', 'ipv6']
     return groups
       .sort((left, right) => {
         const order = left.taskOrder - right.taskOrder
         if (order)
           return order
         const carrierOrder = carriers.indexOf(left.key) - carriers.indexOf(right.key)
-        return carrierOrder || left.region.localeCompare(right.region, 'zh-CN')
+        if (carrierOrder)
+          return carrierOrder
+        const regionOrder = left.region.localeCompare(right.region, 'zh-CN')
+        return regionOrder || families.indexOf(left.family) - families.indexOf(right.family)
       })
-      .map(({ key, region }) => {
-        const states = carrierStates.filter(carrier => carrier.key === key && carrier.region === region)
+      .map(({ key, region, family, taskOrder }) => {
+        const states = carrierStates.filter(carrier => carrier.key === key && carrier.region === region && carrier.family === family)
         const firstState = states[0]
         const label = firstState
           ? appStore.lang === 'zh-CN' ? firstState.labelZh : firstState.labelEn
           : key
-        const families = (['ipv4', 'ipv6'] as const).map((family) => {
-          const carrier = states.find(item => item.family === family && (!region || item.region === region))
-          const familyLabel = FAMILY_LABELS[family][appStore.lang === 'zh-CN' ? 'zh' : 'en']
+        const familyDisplays = [family].map((targetFamily) => {
+          const carrier = states.find(item => item.family === targetFamily && (!region || item.region === region))
+          const familyLabel = FAMILY_LABELS[targetFamily][appStore.lang === 'zh-CN' ? 'zh' : 'en']
           const scopedLabel = region ? `${region} ${label}` : label
           const taskHint = carrier?.taskNames.length
             ? carrier.taskNames.join(' / ')
@@ -185,10 +185,10 @@ export function useNodeCarrierPingDisplay(
           const stats = carrier?.stats
           const latencyBars = stats?.history.length
             ? buildHistoryBars(`${label} ${familyLabel}`, key, stats.history, 'latency')
-            : buildEmptyBars(`${key}-${family}`, 'latency', emptyReason)
+            : buildEmptyBars(`${key}-${targetFamily}`, 'latency', emptyReason)
           const lossBars = stats?.history.length
             ? buildHistoryBars(`${label} ${familyLabel}`, key, stats.history, 'loss')
-            : buildEmptyBars(`${key}-${family}`, 'loss', emptyReason)
+            : buildEmptyBars(`${key}-${targetFamily}`, 'loss', emptyReason)
           const latencyDisplay = state === 'loading'
             ? (appStore.lang === 'zh-CN' ? '加载中' : 'Loading')
             : state === 'error'
@@ -216,26 +216,20 @@ export function useNodeCarrierPingDisplay(
           const lossTooltip = stats?.hasData
             ? `${taskHint}\n${appStore.lang === 'zh-CN' ? '平均丢包' : 'Average loss'} ${lossDisplay}${volatility}`
             : taskHint
-          return { family, label: familyLabel, latencyDisplay, lossDisplay, latencyBars, lossBars, latencyTooltip, lossTooltip, state, taskOrder: carrier?.taskOrder ?? Number.MAX_SAFE_INTEGER }
-        }).filter((family) => {
-          // A task is configured per carrier, region and IP family. Do not
-          // manufacture an IPv4/IPv6 row for the family that was not added.
-          // Route-only legacy data is retained when it has an explicit result.
-          const hasPingTask = states.some(item => item.family === family.family && item.taskNames.length > 0)
-          return hasPingTask
+          return { family: targetFamily, label: familyLabel, latencyDisplay, lossDisplay, latencyBars, lossBars, latencyTooltip, lossTooltip, state, taskOrder: carrier?.taskOrder ?? Number.MAX_SAFE_INTEGER }
         })
-        if (!families.length)
+        if (!familyDisplays.length)
           return null
         return {
-          key: region ? `${key}-${region}` : key,
+          key: `${key}-${region || 'all'}-${family}`,
           carrier: key,
           region,
           label,
           dotClass: CARRIER_DOT_CLASSES[key],
-          families,
-          latencyTooltip: families.map(family => family.latencyTooltip).filter(Boolean).join('\n'),
-          lossTooltip: families.map(family => family.lossTooltip).filter(Boolean).join('\n'),
-          taskOrder: minimumTaskOrder(states.map(state => state.taskOrder)),
+          families: familyDisplays,
+          latencyTooltip: familyDisplays.map(item => item.latencyTooltip).filter(Boolean).join('\n'),
+          lossTooltip: familyDisplays.map(item => item.lossTooltip).filter(Boolean).join('\n'),
+          taskOrder,
         }
       })
       .filter((item): item is CarrierPingDisplay => Boolean(item))

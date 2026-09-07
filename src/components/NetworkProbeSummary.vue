@@ -41,18 +41,20 @@ function emptyFamily(route: CarrierRouteDisplay): CarrierPingDisplay['families']
 }
 
 const displayRows = computed<CarrierPingDisplay[]>(() => {
-  const rows = [...carrierDisplays.value]
+  const rows = carrierDisplays.value.map(row => ({ ...row, families: [...row.families] }))
   for (const route of routeDisplays.value) {
     const key = route.carrier as CarrierPingDisplay['carrier']
     const region = route.region.trim().toLocaleLowerCase()
-    const existing = rows.find(row => row.carrier === key && row.region.trim().toLocaleLowerCase() === region)
+    const existing = rows.find(row => row.carrier === key
+      && row.region.trim().toLocaleLowerCase() === region
+      && row.families.some(family => family.family === route.family))
     if (existing) {
       if (!existing.families.some(family => family.family === route.family))
         existing.families.push(emptyFamily(route))
       continue
     }
     rows.push({
-      key: `${route.carrier}-${route.region}`,
+      key: `${route.carrier}-${route.region}-${route.family}`,
       carrier: route.carrier as CarrierPingDisplay['carrier'],
       region: route.region,
       label: route.carrierLabel,
