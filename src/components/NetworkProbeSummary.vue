@@ -170,7 +170,7 @@ onBeforeUnmount(() => {
   >
     <div data-node-carrier-route class="min-h-0">
       <div data-node-carrier-latency class="flex min-h-0 flex-col">
-        <div class="flex h-8 shrink-0 items-center justify-between gap-2 px-3 text-[11px] font-semibold text-muted-foreground">
+        <div class="network-probe-header flex h-8 shrink-0 items-center justify-between gap-2 px-3 text-[11px] font-semibold text-muted-foreground">
           <span class="flex items-center gap-1.5"><Icon icon="tabler:activity-heartbeat" width="14" height="14" />延迟、丢包与回程</span>
           <button type="button" class="inline-flex min-h-7 items-center gap-1 rounded-md px-2 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground" :aria-label="`${props.node.name} 打开 Ping 详情`" @click.stop="emit('pingClick')">
             详情 <Icon icon="tabler:chevron-right" width="12" height="12" />
@@ -179,7 +179,7 @@ onBeforeUnmount(() => {
         <div
           role="button"
           tabindex="0"
-          class="block min-h-0 w-full px-3 pb-1 text-left"
+          class="network-probe-body block min-h-0 w-full px-3 pb-1 text-left"
           :aria-label="`${props.node.name} 打开 Ping 详情`"
           @click.stop="emit('pingClick')"
           @keydown.enter.prevent.stop="emit('pingClick')"
@@ -193,7 +193,7 @@ onBeforeUnmount(() => {
               </div>
             </div>
             <div v-for="carrier in displayRows" :key="carrier.key" :data-carrier-ping="carrier.carrier" class="grid grid-cols-1" :title="carrier.region ? `${carrier.region}${carrier.label}` : carrier.latencyTooltip">
-              <div v-for="family in carrier.families" :key="`${carrier.key}-${family.family}`" :data-service-row="`${carrier.region}-${carrier.label}-${family.family}`" :data-node-ping-family="family.family" class="grid min-h-0 min-w-0 grid-cols-1 items-center gap-2 py-2 sm:grid-cols-[7.25rem_minmax(0,1fr)_minmax(8rem,0.78fr)] sm:gap-2.5" :title="family.latencyTooltip">
+              <div v-for="family in carrier.families" :key="`${carrier.key}-${family.family}`" :data-service-row="`${carrier.region}-${carrier.label}-${family.family}`" :data-node-ping-family="family.family" class="network-probe-row grid min-h-0 min-w-0 grid-cols-1 items-center gap-2 py-2 sm:grid-cols-[7.25rem_minmax(0,1fr)_minmax(8rem,0.78fr)] sm:gap-2.5" :title="family.latencyTooltip">
                 <span class="flex min-w-0 items-center gap-1.5 text-[11px] font-semibold leading-tight text-muted-foreground">
                   <span class="size-2 shrink-0 rounded-full" :class="carrier.dotClass" />
                   <span class="min-w-0 break-words">{{ carrier.region ? `${carrier.region} ${carrier.label}` : carrier.label }}<span class="mt-1 block text-[10px] font-medium text-muted-foreground/70">{{ family.label }}</span></span>
@@ -216,7 +216,7 @@ onBeforeUnmount(() => {
                   </div>
                 </div>
                 <div :data-carrier-route-family="family.family" class="min-w-0">
-                  <button v-if="routeFor(carrier, family.family)" type="button" :data-carrier-route="routeFor(carrier, family.family)?.key" class="grid min-h-10 w-full min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-1.5 rounded-md border border-border/60 px-2 py-1.5 text-left text-[10px] leading-tight transition-colors hover:bg-muted/45" :title="routeFor(carrier, family.family)?.tooltip" @click.stop="openTrace(routeFor(carrier, family.family)!, $event)">
+                  <button v-if="routeFor(carrier, family.family)" type="button" :data-carrier-route="routeFor(carrier, family.family)?.key" class="network-probe-route grid min-h-10 w-full min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-1.5 rounded-md border border-border/60 px-2 py-1.5 text-left text-[10px] leading-tight transition-colors hover:bg-muted/45" :title="routeFor(carrier, family.family)?.tooltip" @click.stop="openTrace(routeFor(carrier, family.family)!, $event)">
                     <span class="shrink-0 text-[10px] font-medium text-muted-foreground/70">回程线路</span>
                     <span data-carrier-route-label class="flex min-h-6 min-w-0 items-center break-all rounded border px-1.5 font-bold" :class="[routeQualityClass(routeFor(carrier, family.family)?.route || '-'), routeFor(carrier, family.family)?.monitored && (routeFor(carrier, family.family)?.status === '正常' || routeFor(carrier, family.family)?.status === 'OK') ? 'text-success' : routeFor(carrier, family.family)?.monitored ? 'text-warning' : 'text-muted-foreground/60']">{{ routeFor(carrier, family.family)?.route }}</span>
                   </button>
@@ -252,3 +252,33 @@ onBeforeUnmount(() => {
     </Teleport>
   </section>
 </template>
+
+<style scoped>
+@media (min-width: 1200px) and (max-width: 1439px) {
+  .network-probe-header {
+    height: 1.75rem;
+    padding-inline: 0.5rem;
+  }
+
+  .network-probe-body {
+    padding-inline: 0.5rem;
+  }
+
+  .network-probe-row {
+    grid-template-columns: minmax(6.5rem, 0.8fr) minmax(8.5rem, 1fr) minmax(7rem, 0.85fr);
+    column-gap: 0.375rem;
+    padding-block: 0.375rem;
+  }
+
+  .network-probe-route {
+    min-height: 2rem;
+    column-gap: 0.375rem;
+    padding: 0.25rem 0.375rem;
+  }
+
+  .network-probe-route [data-carrier-route-label] {
+    min-height: 1.5rem;
+    padding-inline: 0.25rem;
+  }
+}
+</style>

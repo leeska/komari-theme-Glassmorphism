@@ -283,9 +283,9 @@ function hasRegion(region: string | null | undefined): boolean {
             </h3>
             <span class="text-[11px] text-muted-foreground">实时</span>
           </div>
-          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div class="node-card-resource-grid grid grid-cols-1 gap-3 sm:grid-cols-2">
             <!-- CPU -->
-            <div class="flex min-w-0 flex-col gap-1.5 rounded-lg bg-slate-500/5 p-3">
+            <div class="node-card-resource-item flex min-w-0 flex-col gap-1.5 rounded-lg bg-slate-500/5 p-3">
               <div class="flex justify-between text-xs">
                 <span class="inline-flex min-w-0 items-center gap-1 text-muted-foreground">
                   <span role="img" aria-label="CPU" class="inline-flex shrink-0"><Icon :icon="NODE_METRIC_ICONS.cpu" data-node-metric-icon="cpu" width="13" height="13" class="text-sky-500" aria-hidden="true" /></span>
@@ -300,7 +300,7 @@ function hasRegion(region: string | null | undefined): boolean {
             </div>
 
             <!-- 内存 -->
-            <div class="flex min-w-0 flex-col gap-1.5 rounded-lg bg-slate-500/5 p-3" :title="swapTooltip">
+            <div class="node-card-resource-item flex min-w-0 flex-col gap-1.5 rounded-lg bg-slate-500/5 p-3" :title="swapTooltip">
               <div class="flex justify-between text-xs">
                 <span class="inline-flex min-w-0 items-center gap-1 text-muted-foreground">
                   <span role="img" aria-label="内存" class="inline-flex shrink-0"><Icon :icon="NODE_METRIC_ICONS.memory" data-node-metric-icon="memory" width="13" height="13" class="text-emerald-500" aria-hidden="true" /></span>
@@ -315,7 +315,7 @@ function hasRegion(region: string | null | undefined): boolean {
             </div>
 
             <!-- 硬盘 -->
-            <div class="flex min-w-0 flex-col gap-1.5 rounded-lg bg-slate-500/5 p-3">
+            <div class="node-card-resource-item flex min-w-0 flex-col gap-1.5 rounded-lg bg-slate-500/5 p-3">
               <div class="flex justify-between text-xs">
                 <span class="inline-flex min-w-0 items-center gap-1 text-muted-foreground">
                   <span role="img" aria-label="硬盘" class="inline-flex shrink-0"><Icon :icon="NODE_METRIC_ICONS.disk" data-node-metric-icon="disk" width="13" height="13" class="text-orange-500" aria-hidden="true" /></span>
@@ -330,7 +330,7 @@ function hasRegion(region: string | null | undefined): boolean {
             </div>
 
             <!-- 流量（分级颜色） -->
-            <div class="flex min-w-0 flex-col gap-1.5 rounded-lg bg-slate-500/5 p-3">
+            <div class="node-card-resource-item flex min-w-0 flex-col gap-1.5 rounded-lg bg-slate-500/5 p-3">
               <div class="flex justify-between text-xs">
                 <span class="inline-flex min-w-0 items-center gap-1 text-muted-foreground">
                   <span role="img" aria-label="流量" class="inline-flex shrink-0"><Icon :icon="NODE_METRIC_ICONS.traffic" data-node-metric-icon="traffic" width="13" height="13" class="text-violet-500" aria-hidden="true" /></span>
@@ -353,9 +353,9 @@ function hasRegion(region: string | null | undefined): boolean {
             </div>
           </div>
 
-          <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <div class="node-card-secondary-grid mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
             <!-- 总流量 -->
-            <div class="flex min-w-0 flex-col gap-1 rounded-lg bg-slate-500/5" :class="nodeCardMetricBoxClass">
+            <div class="node-card-secondary-item flex min-w-0 flex-col gap-1 rounded-lg bg-slate-500/5" :class="nodeCardMetricBoxClass">
               <div class="text-[11px] text-muted-foreground flex items-center gap-1">
                 <Icon icon="tabler:upload" width="11" height="11" />
                 <span class="truncate min-w-0">总上传 {{ formatBytes(props.node.net_total_up ?? 0) }}</span>
@@ -367,7 +367,7 @@ function hasRegion(region: string | null | undefined): boolean {
             </div>
 
             <!-- 第三列：有价格显示剩余天数+价格，否则显示负载 -->
-            <div class="flex min-w-0 flex-col gap-1 rounded-lg bg-slate-500/5" :class="nodeCardMetricBoxClass">
+            <div class="node-card-secondary-item flex min-w-0 flex-col gap-1 rounded-lg bg-slate-500/5" :class="nodeCardMetricBoxClass">
               <template v-if="remainingInfoTags.length">
                 <div
                   v-for="(item, i) in remainingInfoTags" :key="i"
@@ -437,6 +437,45 @@ function hasRegion(region: string | null | undefined): boolean {
 @media (min-width: 1200px) {
   .node-card-layout {
     grid-template-columns: minmax(15rem, 0.8fr) minmax(22rem, 1.15fr) minmax(32rem, 2fr);
+  }
+}
+
+/* 13-inch laptops commonly expose a 1280-1440px CSS viewport. Keep the
+   three-column card readable there while removing the excess vertical chrome. */
+@media (min-width: 1200px) and (max-width: 1439px) {
+  .node-card-layout {
+    grid-template-columns: minmax(13.5rem, 0.8fr) minmax(19rem, 1.05fr) minmax(0, 1.7fr);
+  }
+
+  .node-card-identity,
+  .node-card-resources {
+    padding: 0.75rem;
+  }
+
+  .node-card-identity {
+    gap: 0.625rem;
+  }
+
+  .node-card-resources > .mb-3 {
+    margin-bottom: 0.5rem;
+  }
+
+  .node-card-resource-grid {
+    gap: 0.5rem;
+  }
+
+  .node-card-resource-item {
+    gap: 0.375rem;
+    padding: 0.625rem;
+  }
+
+  .node-card-secondary-grid {
+    gap: 0.375rem;
+    margin-top: 0.5rem;
+  }
+
+  .node-card-secondary-item {
+    padding: 0.5rem 0.625rem;
   }
 }
 

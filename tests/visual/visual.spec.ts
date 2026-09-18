@@ -265,6 +265,29 @@ test('comfortable node cards keep all carrier families readable without overflow
   await expect.poll(() => probe.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
 })
 
+test('13-inch desktop cards use the compact comfortable layout', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await installKomariFixture(page, {
+    carrierPingIpv6: true,
+    carrierRouteEnabled: true,
+    hideEarth: true,
+    pingTaskOrdering: true,
+  })
+  await openStablePage(page)
+
+  const card = page.getByRole('button', { name: '查看节点 主控-洛杉矶 详情' })
+  const layout = card.locator('.node-card-layout')
+  const probe = card.locator('[data-node-network-probe]')
+  const bounds = await layout.boundingBox()
+  if (!bounds)
+    throw new Error('compact card bounds unavailable')
+
+  expect(bounds.height).toBeLessThan(430)
+  await expect(probe.locator('[data-service-row]')).toHaveCount(6)
+  await expect.poll(() => probe.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
+  await expect.poll(() => card.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
+})
+
 test('home dark mobile', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await installKomariFixture(page, { dark: true })

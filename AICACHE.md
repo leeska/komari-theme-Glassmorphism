@@ -1,5 +1,14 @@
 # AI Cache / Agent Handoff Log
 
+## 当前任务（2026-09-18，13 寸桌面节点卡片布局）
+
+- 状态：implemented_and_verified，待发布。
+- 目标：降低 1200–1439px CSS 视口下节点卡片的纵向占用，让 13 寸设备能在首屏看到更多节点，同时保持单一 comfortable 卡片布局、三网监控内容和后台顺序不变。
+- 修改：`NodeCard` 在小桌面断点收紧三列最小宽度、身份/资源区内边距、资源块间距和次级指标；`NetworkProbeSummary` 收紧标题、行和回程按钮；`HomeView` 将卡片间距从 1rem 降到 0.75rem。手机和 1200px 以下布局未改动。
+- 回归：新增 1280x800 用例，断言卡片高度低于 430px、六条 IPv4/IPv6 服务行完整、探测区和卡片无横向溢出；定向 Chromium 2/2 通过。桌面截图基线已重新生成。
+- 验证：`bun run lint`、`bun run type-check`、`bun run build`、`git diff --check` 通过；构建保留既有大 chunk 警告。未跟踪 `public/admin-app/` 保持不变且不纳入提交。
+- 下一步：由维护者确认视觉效果后提交并推送 `main`，再按主题发布流程生成新版本资产。
+
 ## 当前任务（2026-09-02，固定卡片与回程探测可靠性）
 
 - 状态：completed_and_published。

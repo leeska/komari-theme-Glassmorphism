@@ -412,7 +412,7 @@ const nodeCardGridClass = computed(() => {
   // Card view is intentionally a single-column stream: every server gets a
   // full-width row so its monitoring data can be read without comparing
   // unrelated cards side by side.
-  return ['grid grid-cols-1 gap-4']
+  return ['node-card-grid grid grid-cols-1 gap-4']
 })
 </script>
 
@@ -648,6 +648,12 @@ const nodeCardGridClass = computed(() => {
   opacity: 0;
   transform: translateY(-6px) scale(0.99);
   filter: blur(2px);
+}
+
+@media (min-width: 1200px) and (max-width: 1439px) {
+  .node-card-grid {
+    gap: 0.75rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
